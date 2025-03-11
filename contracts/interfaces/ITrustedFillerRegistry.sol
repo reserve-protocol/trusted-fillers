@@ -5,12 +5,12 @@ import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
 
 interface ITrustedFillerRegistry {
     error TrustedFillerRegistry__InvalidCaller();
-
     error TrustedFillerRegistry__InvalidRoleRegistry();
     error TrustedFillerRegistry__InvalidFiller();
 
-    event TrustedFillerAdded(IBaseTrustedFiller swapper);
-    event TrustedFillerDeprecated(IBaseTrustedFiller swapper);
+    event TrustedFillerCreated(address creator, IBaseTrustedFiller filler);
+    event TrustedFillerAdded(IBaseTrustedFiller filler);
+    event TrustedFillerDeprecated(IBaseTrustedFiller filler);
 
     function addTrustedFiller(IBaseTrustedFiller _filler) external;
 

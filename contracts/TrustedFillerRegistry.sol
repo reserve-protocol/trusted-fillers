@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+
 import { IRoleRegistry } from "@interfaces/IRoleRegistry.sol";
 
 import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
@@ -38,6 +40,20 @@ contract TrustedFillerRegistry is ITrustedFillerRegistry {
         trustedFillers[address(_filler)] = false;
 
         emit TrustedFillerDeprecated(_filler);
+    }
+
+    function createTrustedFiller(
+        address senderSource,
+        address trustedFiller,
+        bytes32 deploymentSalt
+    ) external returns (IBaseTrustedFiller trustedFillerInstance) {
+        require(trustedFillers[trustedFiller], TrustedFillerRegistry__InvalidFiller());
+
+        bytes32 protectedSalt = keccak256(abi.encodePacked(senderSource, trustedFiller, deploymentSalt));
+
+        trustedFillerInstance = IBaseTrustedFiller(Clones.cloneDeterministic(trustedFiller, protectedSalt));
+
+        emit TrustedFillerCreated(msg.sender, trustedFillerInstance);
     }
 
     function isAllowed(address _filler) external view returns (bool) {

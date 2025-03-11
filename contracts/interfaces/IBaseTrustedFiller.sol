@@ -14,5 +14,5 @@ interface IBaseTrustedFiller {
 
     function isValidSignature(bytes32 _hash, bytes calldata _signature) external view returns (bytes4);
 
-    function close() external;
+    function closeFiller() external;
 }
