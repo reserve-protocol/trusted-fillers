@@ -18,10 +18,10 @@ contract TrustedFillerRegistry is ITrustedFillerRegistry {
 
     mapping(address filler => bool allowed) private trustedFillers;
 
-    constructor(IRoleRegistry _roleRegistry) {
-        require(address(_roleRegistry) != address(0), TrustedFillerRegistry__InvalidRoleRegistry());
+    constructor(address _roleRegistry) {
+        require(_roleRegistry != address(0), TrustedFillerRegistry__InvalidRoleRegistry());
 
-        roleRegistry = _roleRegistry;
+        roleRegistry = IRoleRegistry(_roleRegistry);
     }
 
     function addTrustedFiller(IBaseTrustedFiller _filler) external {
