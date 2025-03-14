@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
+import { IBaseTrustedFiller } from "./IBaseTrustedFiller.sol";
 
 interface ITrustedFillerRegistry {
     error TrustedFillerRegistry__InvalidCaller();

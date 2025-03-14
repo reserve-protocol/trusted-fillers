@@ -5,10 +5,4 @@ forge-std/=node_modules/forge-std/src/
 utils/=test/utils/
 
 @src/=contracts/
-@utils/=contracts/utils/
 @interfaces/=contracts/interfaces/
-
-@folio/=contracts/folio/
-@gov/=contracts/governance/
-@staking/=contracts/staking/
-@deployer/=contracts/deployer/

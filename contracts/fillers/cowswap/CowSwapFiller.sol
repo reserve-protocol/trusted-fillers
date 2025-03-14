@@ -5,14 +5,14 @@ import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/Saf
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
+import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
 
 import { GPv2OrderLib } from "./GPv2OrderLib.sol";
 import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER, D27 } from "./Constants.sol";
 
 /// Swap MUST occur in the same block as initialization
 /// Expected to be newly deployed in the pre-hook of a CowSwap order
-/// Ideally `close()` is called in the end as a post-hook, but this is not relied upon
+/// Ideally `closeFiller()` is called in the end as a post-hook, but this is not relied upon
 contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
