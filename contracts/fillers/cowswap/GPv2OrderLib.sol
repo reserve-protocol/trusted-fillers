@@ -3,17 +3,9 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IEIP712 {
-    function domainSeparator() external view returns (bytes32);
-}
-
-IEIP712 constant COWSWAP_GPV2_SETTLEMENT = IEIP712(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
-// mainnet, base, arbitrum one
-
-address constant COWSWAP_GPV2_VAULT_RELAYER = address(0xC92E8bdf79f0507f65a392b0ab4667716BFE0110);
-
 /// @title Gnosis Protocol v2 Order Library
 /// @author Gnosis Developers
+/// @dev From https://github.com/cowprotocol/contracts
 library GPv2OrderLib {
     /// @dev The complete data for a Gnosis Protocol order. This struct contains
     /// all order parameters that are signed for submitting to GP.

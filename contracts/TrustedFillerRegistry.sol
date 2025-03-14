@@ -49,7 +49,7 @@ contract TrustedFillerRegistry is ITrustedFillerRegistry {
     ) external returns (IBaseTrustedFiller trustedFillerInstance) {
         require(trustedFillers[trustedFiller], TrustedFillerRegistry__InvalidFiller());
 
-        bytes32 protectedSalt = keccak256(abi.encodePacked(senderSource, trustedFiller, deploymentSalt));
+        bytes32 protectedSalt = keccak256(abi.encodePacked(msg.sender, senderSource, deploymentSalt));
 
         trustedFillerInstance = IBaseTrustedFiller(Clones.cloneDeterministic(trustedFiller, protectedSalt));
 

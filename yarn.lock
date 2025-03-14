@@ -23,6 +23,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cowprotocol/contracts@npm:^1.7.0":
+  version: 1.7.0
+  resolution: "@cowprotocol/contracts@npm:1.7.0"
+  peerDependencies:
+    ethers: ^5.4.0
+  checksum: 10c0/702a755f7296bb5742c571917e5a672129fda434fbf516fdc0966eaa129501ceb052c86f8e9235dca2c579564a899329de13de667ed054d088687f9a807da55d
+  languageName: node
+  linkType: hard
+
 "@esbuild/aix-ppc64@npm:0.25.1":
   version: 0.25.1
   resolution: "@esbuild/aix-ppc64@npm:0.25.1"
@@ -345,6 +354,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@reserve-protocol/trusted-fillers@workspace:."
   dependencies:
+    "@cowprotocol/contracts": "npm:^1.7.0"
     "@openzeppelin/contracts": "npm:^5.1.0"
     "@openzeppelin/contracts-upgradeable": "npm:^5.1.0"
     "@prb/math": "npm:^4.1.0"
