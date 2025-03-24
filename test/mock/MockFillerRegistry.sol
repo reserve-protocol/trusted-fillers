@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import { ITrustedFillerRegistry } from "../interfaces/ITrustedFillerRegistry.sol";
-import { IBaseTrustedFiller } from "../interfaces/IBaseTrustedFiller.sol";
+import { ITrustedFillerRegistry } from "../../contracts/interfaces/ITrustedFillerRegistry.sol";
+import { IBaseTrustedFiller } from "../../contracts/interfaces/IBaseTrustedFiller.sol";
 
 /**
  * @title MockFillerRegistry

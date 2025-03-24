@@ -6,3 +6,5 @@ utils/=test/utils/
 
 @src/=contracts/
 @interfaces/=contracts/interfaces/
+@test/=test/
+@mock/=test/mock/

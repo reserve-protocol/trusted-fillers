@@ -39,14 +39,14 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     /// @dev Built for the pre-hook of a CowSwap order, must be called via using entity
     function initialize(
         address _creator,
-        IERC20 _sell,
-        IERC20 _buy,
+        IERC20 _sellToken,
+        IERC20 _buyToken,
         uint256 _sellAmount,
         uint256 _minBuyAmount
     ) external initializer {
         fillCreator = _creator;
-        sellToken = _sell;
-        buyToken = _buy;
+        sellToken = _sellToken;
+        buyToken = _buyToken;
         sellAmount = _sellAmount;
 
         blockInitialized = block.number;
