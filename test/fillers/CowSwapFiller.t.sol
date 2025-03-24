@@ -69,7 +69,8 @@ contract CowSwapFillerFillerTest is BaseTest {
         });
         bytes32 orderHash = GPv2OrderLib.hash(order, GPV2_SETTLEMENT.domainSeparator());
 
-        trustedFiller.isValidSignature(orderHash, abi.encode(order));
+        bytes4 returnSelector = trustedFiller.isValidSignature(orderHash, abi.encode(order));
+        assertTrue(returnSelector == trustedFiller.isValidSignature.selector);
 
         vm.expectRevert();
         trustedFiller.isValidSignature(bytes32(uint256(123)), abi.encode(order));
