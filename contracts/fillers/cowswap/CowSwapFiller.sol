@@ -52,7 +52,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         blockInitialized = block.number;
 
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
-        price = (_minBuyAmount * D27) / _sellAmount;
+        price = Math.mulDiv(_minBuyAmount, D27, _sellAmount);
 
         sellToken.forceApprove(GPV2_VAULT_RELAYER, _sellAmount);
         sellToken.safeTransferFrom(_creator, address(this), _sellAmount);
