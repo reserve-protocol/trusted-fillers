@@ -39,8 +39,8 @@ library GPv2OrderLib {
     ///         "bytes32 appData," +
     ///         "uint256 feeAmount," +
     ///         "string kind," +
-    ///         "bool partiallyFillable" +
-    ///         "string sellTokenBalance" +
+    ///         "bool partiallyFillable," +
+    ///         "string sellTokenBalance," +
     ///         "string buyTokenBalance" +
     ///     ")"
     /// )

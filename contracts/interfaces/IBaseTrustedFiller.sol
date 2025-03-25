@@ -13,5 +13,11 @@ interface IBaseTrustedFiller is IERC1271 {
         uint256 _minBuyAmount
     ) external;
 
+    function buyToken() external view returns (IERC20);
+
+    function sellToken() external view returns (IERC20);
+
     function closeFiller() external;
+
+    function rescueToken(IERC20 token) external;
 }

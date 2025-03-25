@@ -87,11 +87,16 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
-        sellToken.safeTransfer(fillCreator, sellToken.balanceOf(address(this)));
-        buyToken.safeTransfer(fillCreator, buyToken.balanceOf(address(this)));
+        rescueToken(sellToken);
+        rescueToken(buyToken);
     }
 
-    function drainToken(IERC20 token) external {
-        token.safeTransfer(fillCreator, token.balanceOf(address(this)));
+    /// Rescue tokens in case any are left in the contract
+    function rescueToken(IERC20 token) public {
+        uint256 tokenBalance = token.balanceOf(address(this));
+
+        if (tokenBalance != 0) {
+            token.safeTransfer(fillCreator, tokenBalance);
+        }
     }
 }
