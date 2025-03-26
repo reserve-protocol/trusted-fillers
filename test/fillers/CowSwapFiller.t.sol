@@ -54,18 +54,18 @@ contract CowSwapFillerFillerTest is BaseTest {
 
     function test_CowSwap_isValidSignature_orderHash() public {
         GPv2OrderLib.Data memory order = GPv2OrderLib.Data({
-            sellToken: address(sellToken),
-            buyToken: address(buyToken),
+            sellToken: sellToken,
+            buyToken: buyToken,
             receiver: address(trustedFiller),
             sellAmount: sellAmount,
             buyAmount: minBuyAmount,
             validTo: uint32(block.timestamp + 1),
             appData: bytes32(0),
             feeAmount: 0,
-            kind: bytes32(0),
+            kind: GPv2OrderLib.KIND_SELL,
             partiallyFillable: true,
-            sellTokenBalance: bytes32(0),
-            buyTokenBalance: bytes32(0)
+            sellTokenBalance: GPv2OrderLib.BALANCE_ERC20,
+            buyTokenBalance: GPv2OrderLib.BALANCE_ERC20
         });
         bytes32 orderHash = GPv2OrderLib.hash(order, GPV2_SETTLEMENT.domainSeparator());
 

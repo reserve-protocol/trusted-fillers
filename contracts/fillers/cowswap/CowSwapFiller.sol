@@ -68,10 +68,12 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         // Verify Order Hash
         require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), CowSwapFiller__OrderCheckFailed(0)); // Invalid Order Hash
 
-        require(order.sellToken == address(sellToken), CowSwapFiller__OrderCheckFailed(1)); // Invalid Sell Token
-        require(order.buyToken == address(buyToken), CowSwapFiller__OrderCheckFailed(2)); // Invalid Buy Token
+        require(order.sellToken == sellToken, CowSwapFiller__OrderCheckFailed(1)); // Invalid Sell Token
+        require(order.buyToken == buyToken, CowSwapFiller__OrderCheckFailed(2)); // Invalid Buy Token
         require(order.feeAmount == 0, CowSwapFiller__OrderCheckFailed(3)); // Must be a Limit Order
         require(order.receiver == address(this), CowSwapFiller__OrderCheckFailed(4)); // Receiver must be self
+        require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(5)); // Must use ERC20 Balance
+        require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use ERC20 Balance
 
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
