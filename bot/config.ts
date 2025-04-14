@@ -1,8 +1,8 @@
 import { base, mainnet } from "viem/chains";
 
 export const orderConfig = {
-  fullfilmentBuffer: 120, // {s}
-  trackingInverval: 15, // {s}
+  fulfilmentBuffer: 120, // {s}
+  trackingInterval: 15, // {s}
 } as const;
 
 export const folioTargets = [

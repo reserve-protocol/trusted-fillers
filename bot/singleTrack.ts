@@ -1,4 +1,4 @@
-import { Address, bytesToHex, encodeFunctionData, Hex, maxUint256 } from "viem";
+import { Address, bytesToHex, encodeFunctionData, formatUnits, Hex, maxUint256, parseUnits } from "viem";
 import { getRandomValues } from "node:crypto";
 
 import { FolioArtifact } from "./abi/Folio";
@@ -84,7 +84,7 @@ export async function checkSingleAuction(activeTrack: ActiveTrack, auctionId: bi
               functionName: "createTrustedFill",
               args: [auctionId, fillerAddressToUse, randomDeploymentSalt],
             }),
-            gasLimit: (750e3).toString(),
+            gasLimit: (1e6).toString(),
           },
         ],
         post: [
@@ -95,7 +95,7 @@ export async function checkSingleAuction(activeTrack: ActiveTrack, auctionId: bi
               functionName: "poke", // (can not revert) Close the Trusted Fill
               args: [],
             }),
-            gasLimit: (250e3).toString(),
+            gasLimit: (1e6).toString(),
           },
           {
             target: targetFolio.address,
@@ -104,7 +104,7 @@ export async function checkSingleAuction(activeTrack: ActiveTrack, auctionId: bi
               functionName: "removeFromBasket", // (can revert) Second call to remove the token, if possible
               args: [auctionDetails.sellToken], // remove sell token
             }),
-            gasLimit: (250e3).toString(),
+            gasLimit: (1e6).toString(),
           },
         ],
       },
@@ -114,43 +114,49 @@ export async function checkSingleAuction(activeTrack: ActiveTrack, auctionId: bi
   const { appDataHex, appDataContent } = await metadataApi.appDataToCid(appDataDoc);
   const { fullAppData } = await orderBookApi.uploadAppData(appDataHex, appDataContent);
 
-  const auctionValidTo = Math.floor(Date.now() / 1000) + orderConfig.fullfilmentBuffer;
+  const auctionValidTo = Math.floor(Date.now() / 1000) + orderConfig.fulfilmentBuffer;
+
+  // Reduce sellAmount by 1 min (fulfilmentBuffer) per year depreciation.
+  const targetSellAmount = (bidData.sellAmount * parseUnits("0.99999", 18)) / parseUnits("1", 18);
 
   console.log(
     `[AuctionLog]`,
     `[${targetFolio.address}-${auctionId}]`,
-    `${bidData.sellAmount.toString()} ${auctionDetails.sellToken} -> ${bidData.buyAmount.toString()} ${auctionDetails.buyToken}.`,
+    `${targetSellAmount.toString()} ${auctionDetails.sellToken} -> ${bidData.buyAmount.toString()} ${auctionDetails.buyToken}.`,
   );
 
-  const orderId = await orderBookApi.sendOrder({
-    sellToken: auctionDetails.sellToken,
-    buyToken: auctionDetails.buyToken,
-    receiver: expectedFillContract.result,
-    sellAmount: bidData.sellAmount.toString(),
-    buyAmount: bidData.buyAmount.toString(),
-    validTo: auctionValidTo,
-    appData: appDataContent,
-    feeAmount: "0",
-    kind: OrderKind.SELL,
-    partiallyFillable: true,
-    sellTokenBalance: SellTokenSource.ERC20,
-    buyTokenBalance: BuyTokenDestination.ERC20,
-    signature: encodeCowswapOrder({
+  const orderId = await orderBookApi
+    .sendOrder({
       sellToken: auctionDetails.sellToken,
       buyToken: auctionDetails.buyToken,
-      sellAmount: bidData.sellAmount,
-      buyAmount: bidData.buyAmount,
-      validTo: auctionValidTo,
-      appData: appDataHex as Hex,
       receiver: expectedFillContract.result,
-    }),
-    signingScheme: SigningScheme.EIP1271,
-    from: expectedFillContract.result,
-  });
+      sellAmount: targetSellAmount.toString(),
+      buyAmount: bidData.buyAmount.toString(),
+      validTo: auctionValidTo,
+      appData: appDataContent,
+      feeAmount: "0",
+      kind: OrderKind.SELL,
+      partiallyFillable: true,
+      sellTokenBalance: SellTokenSource.ERC20,
+      buyTokenBalance: BuyTokenDestination.ERC20,
+      signature: encodeCowswapOrder({
+        sellToken: auctionDetails.sellToken,
+        buyToken: auctionDetails.buyToken,
+        sellAmount: targetSellAmount,
+        buyAmount: bidData.buyAmount,
+        validTo: auctionValidTo,
+        appData: appDataHex as Hex,
+        receiver: expectedFillContract.result,
+      }),
+      signingScheme: SigningScheme.EIP1271,
+      from: expectedFillContract.result,
+    })
+    .catch(() => "!!! FAILED !!!");
 
   console.log(
     `[AuctionOrder]`,
     `[${targetFolio.address}-${auctionId}]`,
-    `>> Order ID: ${orderId}, Price: ${bidData.price} <<`,
+    `Price: ${formatUnits(bidData.price, 27)}`,
+    `Order ID: ${orderId}`,
   );
 }

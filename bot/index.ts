@@ -65,7 +65,7 @@ async function main() {
         abi: FolioArtifact.abi,
         client: target.chainId === base.id ? baseClient : mainnetClient,
       }),
-      activeAuctions: [3n],
+      activeAuctions: [],
       chainId: target.chainId,
     };
 
@@ -94,8 +94,8 @@ async function main() {
 
     console.log(
       `[IntervalTrack]`,
-      `>> Mainnet: ${mainnetBlock.number}, ${new Date(Number(mainnetBlock.timestamp) * 1000).toLocaleString()} <<`,
-      `>> Base: ${baseBlock.number}, ${new Date(Number(baseBlock.timestamp) * 1000).toLocaleString()} <<`,
+      `Mainnet: ${mainnetBlock.number}, ${new Date(Number(mainnetBlock.timestamp) * 1000).toLocaleString()}`,
+      `Base: ${baseBlock.number}, ${new Date(Number(baseBlock.timestamp) * 1000).toLocaleString()}`,
     );
 
     for (const track of activeTracks) {
@@ -106,7 +106,7 @@ async function main() {
         });
       }
     }
-  }, orderConfig.trackingInverval * 1000);
+  }, orderConfig.trackingInterval * 1000);
 }
 
 main();
