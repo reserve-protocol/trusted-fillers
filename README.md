@@ -1,8 +1,8 @@
 # Reserve Trusted Fillers
 
-Trusted Fillers are used by protocols within the Reserve ecosystem to support async swaps with known fillers. Trusted Fillers are used async settlements for the requested tokens and amounts such that the protocol is acting just like any other trading entity coming in with an approval and an intent. They are referred to as "async" in order to convey that they happen out-of-bound and do not directly call into the contracts unlike the Dutch Auctions implemented within the protocols.
+Trusted Fillers are used by protocols within the Reserve ecosystem to support async swaps with known fillers. Trusted Fillers use async settlements for the requested tokens and amounts such that the protocol mimics any other trading entity acting through approvals and intents. They are "async" to convey they happen out-of-bound and do not directly call into the contracts unlike the Dutch Auction atomic swap bids implemented within the protocols.
 
-Since the swaps happen async and without the contract knowing every single detail, we refer to them as "trusted" fillers. The contracts in this repo are designed to limit what they can do and enforce protocol restrictions and limitations on them when they perform the swap.
+Since swaps happen async and without the contract knowing every single detail, we refer to them as "trusted" fillers. The contracts in this repo are designed to limit what they can do and enforce protocol restrictions and limitations on them when they perform the swap via EIP-1271. However, adherence to EIP-1271 by the filler cannot be enforced. 
 
 The core entrypoint for the protocols is the `TrustedFillerRegistry` which holds a list of available fillers that can be used by any of the implementing protocols to fulfil trading intents while tapping into the larger DeFi ecosystem.
 
