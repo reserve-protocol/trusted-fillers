@@ -74,12 +74,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         require(order.receiver == address(this), CowSwapFiller__OrderCheckFailed(4)); // Receiver must be self
         require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(5)); // Must use ERC20 Balance
         require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use ERC20 Balance
+        require(order.sellAmount != 0, CowSwapFiller__OrderCheckFailed(7)); // catch div-by-zero below
 
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
         uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount);
         require(
-            order.sellAmount != 0 && order.sellAmount <= sellAmount && orderPrice >= price,
+            order.sellAmount <= sellAmount && orderPrice >= price,
             CowSwapFiller__OrderCheckFailed(100)
         );
 
