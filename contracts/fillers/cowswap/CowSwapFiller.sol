@@ -52,7 +52,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         blockInitialized = block.number;
 
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
-        price = Math.mulDiv(_minBuyAmount, D27, _sellAmount);
+        price = Math.mulDiv(_minBuyAmount, D27, _sellAmount, Math.Rounding.Ceil);
 
         sellToken.forceApprove(GPV2_VAULT_RELAYER, _sellAmount);
         sellToken.safeTransferFrom(_creator, address(this), _sellAmount);
@@ -78,11 +78,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
-        uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount);
-        require(
-            order.sellAmount <= sellAmount && orderPrice >= price,
-            CowSwapFiller__OrderCheckFailed(100)
-        );
+        uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount, Math.Rounding.Floor);
+        require(order.sellAmount <= sellAmount && orderPrice >= price, CowSwapFiller__OrderCheckFailed(100));
 
         // If all checks pass, return the magic value
         return this.isValidSignature.selector;
@@ -90,6 +87,17 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
+        if (block.number == blockInitialized) {
+            uint256 balanceTransferredOut = sellAmount - sellToken.balanceOf(address(this));
+
+            if (balanceTransferredOut != 0) {
+                // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
+                uint256 minimumExpectedIn = Math.mulDiv(balanceTransferredOut, price, D27, Math.Rounding.Ceil);
+
+                require(minimumExpectedIn <= buyToken.balanceOf(address(this)), CowSwapFiller__OrderCheckFailed(8));
+            }
+        }
+
         rescueToken(sellToken);
         rescueToken(buyToken);
     }
