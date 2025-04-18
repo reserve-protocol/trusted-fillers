@@ -88,7 +88,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
         if (block.number == blockInitialized) {
-            uint256 balanceTransferredOut = sellAmount - sellToken.balanceOf(address(this));
+            uint256 sellTokenBalance = sellToken.balanceOf(address(this));
+            uint256 balanceTransferredOut = sellTokenBalance >= sellAmount ? 0 : sellAmount - sellTokenBalance;
 
             if (balanceTransferredOut != 0) {
                 // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
