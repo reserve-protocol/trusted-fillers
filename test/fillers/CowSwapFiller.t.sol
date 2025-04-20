@@ -3,8 +3,6 @@ pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
 
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockEIP712 } from "@mock/MockEIP712.sol";
 import { BaseTest, CowSwapFiller } from "@test/base/BaseTest.sol";
@@ -74,5 +72,15 @@ contract CowSwapFillerFillerTest is BaseTest {
 
         vm.expectRevert();
         trustedFiller.isValidSignature(bytes32(uint256(123)), abi.encode(order));
+    }
+
+    function test_CowSwap_swapActive() public {
+        assertFalse(trustedFiller.swapActive());
+
+        sellToken.burn(address(trustedFiller), sellAmount);
+        assertTrue(trustedFiller.swapActive());
+
+        vm.expectRevert(abi.encodeWithSelector(IBaseTrustedFiller.IBaseTrustedFiller__SwapActive.selector));
+        trustedFiller.closeFiller();
     }
 }

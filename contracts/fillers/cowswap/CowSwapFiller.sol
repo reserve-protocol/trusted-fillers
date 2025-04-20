@@ -85,19 +85,27 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         return this.isValidSignature.selector;
     }
 
+    /// @return true if the contract is mid-swap and funds have not yet settled
+    function swapActive() public view returns (bool) {
+        if (block.number != blockInitialized) {
+            return false;
+        }
+
+        uint256 sellTokenBalance = sellToken.balanceOf(address(this));
+
+        if (sellTokenBalance >= sellAmount) {
+            return false;
+        }
+
+        // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
+        uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
+        
+        return minimumExpectedIn > buyToken.balanceOf(address(this));
+    }
+
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
-        if (block.number == blockInitialized) {
-            uint256 sellTokenBalance = sellToken.balanceOf(address(this));
-            uint256 balanceTransferredOut = sellTokenBalance >= sellAmount ? 0 : sellAmount - sellTokenBalance;
-
-            if (balanceTransferredOut != 0) {
-                // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
-                uint256 minimumExpectedIn = Math.mulDiv(balanceTransferredOut, price, D27, Math.Rounding.Ceil);
-
-                require(minimumExpectedIn <= buyToken.balanceOf(address(this)), CowSwapFiller__OrderCheckFailed(8));
-            }
-        }
+        require(!swapActive(), IBaseTrustedFiller__SwapActive());
 
         rescueToken(sellToken);
         rescueToken(buyToken);
