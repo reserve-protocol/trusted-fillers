@@ -80,7 +80,7 @@ contract CowSwapFillerFillerTest is BaseTest {
         sellToken.burn(address(trustedFiller), sellAmount);
         assertTrue(trustedFiller.swapActive());
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseTrustedFiller.IBaseTrustedFiller__SwapActive.selector));
+        vm.expectRevert(abi.encodeWithSelector(IBaseTrustedFiller.BaseTrustedFiller__SwapActive.selector));
         trustedFiller.closeFiller();
     }
 }
