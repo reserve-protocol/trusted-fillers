@@ -99,13 +99,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
         // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
         uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
-        
+
         return minimumExpectedIn > buyToken.balanceOf(address(this));
     }
 
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
-        require(!swapActive(), IBaseTrustedFiller__SwapActive());
+        require(!swapActive(), BaseTrustedFiller__SwapActive());
 
         rescueToken(sellToken);
         rescueToken(buyToken);
