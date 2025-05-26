@@ -52,7 +52,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         blockInitialized = block.number;
 
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
-        price = Math.mulDiv(_minBuyAmount, D27, _sellAmount);
+        price = Math.mulDiv(_minBuyAmount, D27, _sellAmount, Math.Rounding.Ceil);
 
         sellToken.forceApprove(GPV2_VAULT_RELAYER, _sellAmount);
         sellToken.safeTransferFrom(_creator, address(this), _sellAmount);
@@ -74,21 +74,39 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         require(order.receiver == address(this), CowSwapFiller__OrderCheckFailed(4)); // Receiver must be self
         require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(5)); // Must use ERC20 Balance
         require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use ERC20 Balance
+        require(order.sellAmount != 0, CowSwapFiller__OrderCheckFailed(7)); // catch div-by-zero below
 
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
-        uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount);
-        require(
-            order.sellAmount != 0 && order.sellAmount <= sellAmount && orderPrice >= price,
-            CowSwapFiller__OrderCheckFailed(100)
-        );
+        uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount, Math.Rounding.Floor);
+        require(order.sellAmount <= sellAmount && orderPrice >= price, CowSwapFiller__OrderCheckFailed(100));
 
         // If all checks pass, return the magic value
         return this.isValidSignature.selector;
     }
 
+    /// @return true if the contract is mid-swap and funds have not yet settled
+    function swapActive() public view returns (bool) {
+        if (block.number != blockInitialized) {
+            return false;
+        }
+
+        uint256 sellTokenBalance = sellToken.balanceOf(address(this));
+
+        if (sellTokenBalance >= sellAmount) {
+            return false;
+        }
+
+        // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
+        uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
+
+        return minimumExpectedIn > buyToken.balanceOf(address(this));
+    }
+
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
+        require(!swapActive(), BaseTrustedFiller__SwapActive());
+
         rescueToken(sellToken);
         rescueToken(buyToken);
     }
