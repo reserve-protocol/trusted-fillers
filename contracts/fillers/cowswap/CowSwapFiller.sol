@@ -107,12 +107,18 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     function closeFiller() external {
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
-        rescueToken(sellToken);
-        rescueToken(buyToken);
+        _rescueToken(sellToken);
+        _rescueToken(buyToken);
     }
 
     /// Rescue tokens in case any are left in the contract
     function rescueToken(IERC20 token) public {
+        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
+
+        _rescueToken(token);
+    }
+
+    function _rescueToken(IERC20 token) internal {
         uint256 tokenBalance = token.balanceOf(address(this));
 
         if (tokenBalance != 0) {
