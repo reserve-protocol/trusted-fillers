@@ -6,11 +6,11 @@
   "dependencies": {
     "@cowprotocol/app-data": "^2.5.1",
     "@cowprotocol/cow-sdk": "^5.10.1",
-    "@openzeppelin/contracts": "^5.1.0",
-    "@openzeppelin/contracts-upgradeable": "^5.1.0",
-    "@prb/math": "^4.1.0",
+    "@openzeppelin/contracts": "5.1.0",
+    "@openzeppelin/contracts-upgradeable": "5.1.0",
+    "@prb/math": "4.1.0",
     "ethers": "^5.7.2",
-    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.7",
     "viem": "^2.23.11"
   },
   "devDependencies": {
@@ -36,5 +36,5 @@
     "deploy": "forge script script/Deploy.s.sol:DeployScript --broadcast --slow --skip-simulation",
     "anvil": "anvil --fork-url https://ethereum-rpc.publicnode.com --chain-id 31337 --prune-history"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.9.2"
 }
