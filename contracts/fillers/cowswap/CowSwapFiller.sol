@@ -79,7 +79,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
         uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount, Math.Rounding.Floor);
-        require(order.sellAmount <= sellAmount && orderPrice >= price, CowSwapFiller__OrderCheckFailed(100));
+        require(orderPrice >= price, CowSwapFiller__OrderCheckFailed(100));
 
         // If all checks pass, return the magic value
         return this.isValidSignature.selector;
