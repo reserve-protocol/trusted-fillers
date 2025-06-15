@@ -1,5 +1,5 @@
-import { folioTargets } from "./config";
-import { trackSingleFolio } from "./singleTrack";
+import { folioTargets } from "@/config";
+import { trackSingleFolio } from "@/singleTrack";
 
 async function main() {
   // TODO: Switch to threading/workers here.

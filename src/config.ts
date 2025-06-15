@@ -56,6 +56,7 @@ export const cowswapClients = {
   orderBookApi: {
     [mainnet.id]: new OrderBookApi({ chainId: mainnet.id }),
     [base.id]: new OrderBookApi({ chainId: base.id }),
+    // @ts-expect-error -- BSC isn't supported by CowSwap... yet.
     [bsc.id]: new OrderBookApi({ chainId: bsc.id }),
   },
 } as const;

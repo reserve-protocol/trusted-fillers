@@ -1,25 +1,15 @@
-import {
-  Address,
-  bytesToHex,
-  encodeFunctionData,
-  erc20Abi,
-  formatUnits,
-  Hex,
-  maxUint256,
-  parseUnits,
-  zeroAddress,
-} from "viem";
 import { getRandomValues } from "node:crypto";
 
-import { FolioArtifact } from "./abi/Folio";
-import { encodeCowswapOrder } from "./abi/CowSwap";
-import { orderConfig, folioTargets, CONSTANTS, viemClients, cowswapClients } from "./config";
-
 import { BuyTokenDestination, OrderKind, SellTokenSource, SigningScheme } from "@cowprotocol/cow-sdk";
+import { bytesToHex, encodeFunctionData, erc20Abi, formatUnits, Hex, zeroAddress } from "viem";
 import { getBlock, readContract, simulateContract } from "viem/actions";
-import { FolioLensArtifact } from "./abi/FolioLens";
-import { getPricesForTokens } from "./pricing";
-import { sleep } from "./utils";
+
+import { encodeCowswapOrder } from "@/abi/CowSwap";
+import { FolioArtifact } from "@/abi/Folio";
+import { FolioLensArtifact } from "@/abi/FolioLens";
+import { orderConfig, folioTargets, CONSTANTS, viemClients, cowswapClients } from "@/config";
+import { getPricesForTokens } from "@/pricing";
+import { sleep } from "@/utils";
 
 export async function trackSingleFolio(folioData: (typeof folioTargets)[number]) {
   console.log(`[FolioParsing]`, `${folioData.folioAddress} on ${folioData.chainId}`);
@@ -115,7 +105,7 @@ export async function trackSingleFolio(folioData: (typeof folioTargets)[number])
         functionName: "createTrustedFill",
         args: [targetAuctionId, auction.sellToken, auction.buyToken, fillerAddressToUse, randomDeploymentSalt],
         account: CONSTANTS.CowSwap.TRAMPOLINE,
-      }).catch((e) => false as const);
+      }).catch(() => false as const);
 
       if (!expectedFillContract) {
         console.log("[Tracking]", "Auction:", auction.sellToken, auction.buyToken, "Failed to simulate");

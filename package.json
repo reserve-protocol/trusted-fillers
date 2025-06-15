@@ -15,7 +15,12 @@
     "viem": "^2.31.2"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "decimal.js": "^10.5.0",
+    "eslint": "^9.29.0",
+    "eslint-config-next": "^15.3.3",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.5.3",
     "prettier-plugin-solidity": "^1.4.3",
     "solhint": "^5.1.0",
@@ -33,9 +38,7 @@
     "size": "forge compile --sizes",
     "coverage": "forge coverage --report lcov --no-match-coverage '(script|test)'",
     "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
-    "deploy": "forge script script/Deploy.s.sol:DeployScript --broadcast --slow --skip-simulation",
-    "anvil": "anvil --fork-url https://ethereum-rpc.publicnode.com --chain-id 31337 --prune-history",
-    "bot:start": "tsx ./bot/index.ts"
+    "bot:start": "tsx ./src/index.ts"
   },
   "packageManager": "yarn@4.9.2"
 }
