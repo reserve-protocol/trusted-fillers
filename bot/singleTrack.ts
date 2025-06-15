@@ -1,162 +1,225 @@
-import { Address, bytesToHex, encodeFunctionData, formatUnits, Hex, maxUint256, parseUnits } from "viem";
+import {
+  Address,
+  bytesToHex,
+  encodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  Hex,
+  maxUint256,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { getRandomValues } from "node:crypto";
 
 import { FolioArtifact } from "./abi/Folio";
 import { encodeCowswapOrder } from "./abi/CowSwap";
-import { orderConfig, fillerMap } from "./config";
-import type { ActiveTrack } from ".";
+import { orderConfig, folioTargets, CONSTANTS, viemClients, cowswapClients } from "./config";
 
-import { BuyTokenDestination, OrderBookApi, OrderKind, SellTokenSource, SigningScheme } from "@cowprotocol/cow-sdk";
-import { MetadataApi } from "@cowprotocol/app-data";
+import { BuyTokenDestination, OrderKind, SellTokenSource, SigningScheme } from "@cowprotocol/cow-sdk";
+import { getBlock, readContract, simulateContract } from "viem/actions";
+import { FolioLensArtifact } from "./abi/FolioLens";
+import { getPricesForTokens } from "./pricing";
+import { sleep } from "./utils";
 
-const metadataApi = new MetadataApi();
+export async function trackSingleFolio(folioData: (typeof folioTargets)[number]) {
+  console.log(`[FolioParsing]`, `${folioData.folioAddress} on ${folioData.chainId}`);
 
-export async function checkSingleAuction(activeTrack: ActiveTrack, auctionId: bigint, blockNumber: bigint) {
-  const targetFolio = activeTrack.targetFolio;
-  const orderBookApi = new OrderBookApi({ chainId: activeTrack.chainId });
+  const viemClient = viemClients[folioData.chainId];
+  const metadataApi = cowswapClients.metadataApi;
+  const orderBookApi = cowswapClients.orderBookApi[folioData.chainId];
 
-  const bidData = await targetFolio.read
-    .getBid([auctionId, 0n, maxUint256], {
-      blockNumber,
-    })
-    .then(
-      (e) =>
-        ({
-          success: true,
-          sellAmount: e[0],
-          buyAmount: e[1],
-          price: e[2],
-        }) as const,
-    )
-    .catch(() => {
-      return {
-        success: false,
-      } as const;
-    });
-
-  if (!bidData.success) {
-    activeTrack.activeAuctions = activeTrack.activeAuctions.filter((e) => e !== auctionId);
-    console.log(`>>>>>>>>> Auction ${auctionId} is closed.`);
-
-    return;
-  }
-
-  const auctionDetails = await targetFolio.read
-    .auctions([auctionId], {
-      blockNumber,
-    })
-    .then(
-      (e) =>
-        ({
-          id: e[0],
-          sellToken: e[1],
-          buyToken: e[2],
-        }) as const,
-    );
-
-  const randomDeploymentSalt = bytesToHex(getRandomValues(new Uint8Array(32)));
-  const fillerAddressToUse = fillerMap[activeTrack.chainId] as Address; // CowSwap Filler
-
-  const expectedFillContract = await targetFolio.simulate.createTrustedFill(
-    [auctionId, fillerAddressToUse, randomDeploymentSalt],
-    {
-      account: "0x01DcB88678aedD0C4cC9552B20F4718550250574", // This is the CowSwap Hooks Trampoline
-    },
-  );
-
-  const appDataDoc = await metadataApi.generateAppDataDoc({
-    appCode: "Reserve Trusted Fillers",
-    environment: "prod",
-    metadata: {
-      quote: {
-        slippageBips: 0,
-      },
-      orderClass: {
-        orderClass: "limit",
-      },
-      hooks: {
-        version: "1.3.0",
-        pre: [
-          {
-            target: targetFolio.address,
-            callData: encodeFunctionData({
-              abi: FolioArtifact.abi,
-              functionName: "createTrustedFill",
-              args: [auctionId, fillerAddressToUse, randomDeploymentSalt],
-            }),
-            gasLimit: (1e6).toString(),
-          },
-        ],
-        post: [
-          {
-            target: targetFolio.address,
-            callData: encodeFunctionData({
-              abi: FolioArtifact.abi,
-              functionName: "poke", // (can not revert) Close the Trusted Fill
-              args: [],
-            }),
-            gasLimit: (1e6).toString(),
-          },
-          {
-            target: targetFolio.address,
-            callData: encodeFunctionData({
-              abi: FolioArtifact.abi,
-              functionName: "removeFromBasket", // (can revert) Second call to remove the token, if possible
-              args: [auctionDetails.sellToken], // remove sell token
-            }),
-            gasLimit: (1e6).toString(),
-          },
-        ],
-      },
-    },
+  const blockData = await getBlock(viemClient, {
+    includeTransactions: false,
   });
 
-  const { appDataHex, appDataContent } = await metadataApi.appDataToCid(appDataDoc);
-  const { fullAppData } = await orderBookApi.uploadAppData(appDataHex, appDataContent);
+  console.log(`[Block]`, `${blockData.number}, ${new Date(Number(blockData.timestamp) * 1000).toLocaleString()}`);
 
-  const auctionValidTo = Math.floor(Date.now() / 1000) + orderConfig.fulfilmentBuffer;
+  const nextAuctionId = await readContract(viemClient, {
+    abi: FolioArtifact.abi,
+    address: folioData.folioAddress,
+    functionName: "nextAuctionId",
+  });
 
-  // Reduce sellAmount by 1 min (fulfilmentBuffer) per year depreciation.
-  const targetSellAmount = (bidData.sellAmount * parseUnits("0.99999", 18)) / parseUnits("1", 18);
+  const targetAuctionId = nextAuctionId - 1n;
+  const auctionsData = await readContract(viemClient, {
+    abi: FolioLensArtifact.abi,
+    address: CONSTANTS.FolioR400.FolioLens,
+    functionName: "getAllBids",
+    args: [folioData.folioAddress, targetAuctionId, 0n],
+  });
 
-  console.log(
-    `[AuctionLog]`,
-    `[${targetFolio.address}-${auctionId}]`,
-    `${targetSellAmount.toString()} ${auctionDetails.sellToken} -> ${bidData.buyAmount.toString()} ${auctionDetails.buyToken}.`,
-  );
+  console.log("[FolioParsing]", "Target Auction:", targetAuctionId.toString());
 
-  const orderId = await orderBookApi
-    .sendOrder({
-      sellToken: auctionDetails.sellToken,
-      buyToken: auctionDetails.buyToken,
-      receiver: expectedFillContract.result,
-      sellAmount: targetSellAmount.toString(),
-      buyAmount: bidData.buyAmount.toString(),
-      validTo: auctionValidTo,
-      appData: appDataContent,
-      feeAmount: "0",
-      kind: OrderKind.SELL,
-      partiallyFillable: true,
-      sellTokenBalance: SellTokenSource.ERC20,
-      buyTokenBalance: BuyTokenDestination.ERC20,
-      signature: encodeCowswapOrder({
-        sellToken: auctionDetails.sellToken,
-        buyToken: auctionDetails.buyToken,
-        sellAmount: targetSellAmount,
-        buyAmount: bidData.buyAmount,
-        validTo: auctionValidTo,
-        appData: appDataHex as Hex,
-        receiver: expectedFillContract.result,
-      }),
-      signingScheme: SigningScheme.EIP1271,
-      from: expectedFillContract.result,
-    })
-    .catch(() => "!!! FAILED !!!");
+  if (auctionsData.length > 0) {
+    console.log(`[FolioParsing]`, `Auction Active ✅`);
 
-  console.log(
-    `[AuctionOrder]`,
-    `[${targetFolio.address}-${auctionId}]`,
-    `Price: ${formatUnits(bidData.price, 27)}`,
-    `Order ID: ${orderId}`,
-  );
+    // Surplus tokens and deficit tokens are always exclusive.
+    const allTokens = [
+      ...new Set(auctionsData.map((auction) => auction.sellToken)),
+      ...new Set(auctionsData.map((auction) => auction.buyToken)),
+    ];
+
+    const tokenPrices = await getPricesForTokens({
+      chainId: folioData.chainId,
+      tokens: allTokens,
+    });
+
+    // TODO: Optimize this so decimals and names are only fetched once.
+    const tokenDecimals = await Promise.all(
+      allTokens.map((token) =>
+        readContract(viemClient, {
+          abi: erc20Abi,
+          address: token,
+          functionName: "decimals",
+        }),
+      ),
+    );
+
+    // console.log({ tokenPrices, tokenDecimals });
+    // console.log({ auctionsData, targetAuctionId });
+
+    const activeBiddableAuctions = auctionsData.filter((auction) => auction.buyToken !== zeroAddress);
+    const activeBiddableAuctionsWithPrices = activeBiddableAuctions.map((auction) => ({
+      ...auction,
+      sellTokenPrice: tokenPrices[auction.sellToken.toLowerCase()],
+      buyTokenPrice: tokenPrices[auction.buyToken.toLowerCase()],
+      sellAuctionSize:
+        Number(formatUnits(auction.sellAmount, tokenDecimals[allTokens.indexOf(auction.sellToken)])) *
+        tokenPrices[auction.sellToken.toLowerCase()],
+      buyAuctionSize:
+        Number(formatUnits(auction.bidAmount, tokenDecimals[allTokens.indexOf(auction.buyToken)])) *
+        tokenPrices[auction.buyToken.toLowerCase()],
+    }));
+
+    console.log("[Tracking]", "Active Biddable Auctions:", activeBiddableAuctionsWithPrices.length);
+
+    // TODO: Prune auctions here.
+
+    const fillerAddressToUse = CONSTANTS.CowSwap.fillerMap[folioData.chainId];
+
+    for await (const auction of activeBiddableAuctionsWithPrices) {
+      console.log(
+        "[Tracking]",
+        "Auction:",
+        auction.sellToken,
+        auction.buyToken,
+        `Selling $${auction.sellAuctionSize.toFixed(2)} -> $${auction.buyAuctionSize.toFixed(2)}`,
+      );
+
+      const randomDeploymentSalt = bytesToHex(getRandomValues(new Uint8Array(32)));
+
+      // TODO: Think it's worth replacing the simulate call with calculating the contract manually?
+      const expectedFillContract = await simulateContract(viemClient, {
+        abi: FolioArtifact.abi,
+        address: folioData.folioAddress,
+        functionName: "createTrustedFill",
+        args: [targetAuctionId, auction.sellToken, auction.buyToken, fillerAddressToUse, randomDeploymentSalt],
+        account: CONSTANTS.CowSwap.TRAMPOLINE,
+      }).catch((e) => false as const);
+
+      if (!expectedFillContract) {
+        console.log("[Tracking]", "Auction:", auction.sellToken, auction.buyToken, "Failed to simulate");
+        continue;
+      }
+
+      const appDataDoc = await metadataApi.generateAppDataDoc({
+        appCode: "Reserve Protocol",
+        environment: "prod",
+        metadata: {
+          orderClass: {
+            orderClass: "limit",
+          },
+          hooks: {
+            version: "1.3.0",
+            pre: [
+              {
+                target: folioData.folioAddress,
+                callData: encodeFunctionData({
+                  abi: FolioArtifact.abi,
+                  functionName: "createTrustedFill",
+                  args: [
+                    targetAuctionId,
+                    auction.sellToken,
+                    auction.buyToken,
+                    fillerAddressToUse,
+                    randomDeploymentSalt,
+                  ],
+                }),
+                gasLimit: (1e6).toString(),
+              },
+            ],
+            post: [
+              {
+                target: folioData.folioAddress,
+                callData: encodeFunctionData({
+                  abi: FolioArtifact.abi,
+                  functionName: "poke", // (can not revert) Close the Trusted Fill
+                  args: [],
+                }),
+                gasLimit: (1e6).toString(),
+              },
+              {
+                target: folioData.folioAddress,
+                callData: encodeFunctionData({
+                  abi: FolioArtifact.abi,
+                  functionName: "removeFromBasket", // (can revert) Second call to remove the token, if possible
+                  args: [auction.sellToken], // remove sell token
+                }),
+                gasLimit: (1e6).toString(),
+              },
+            ],
+          },
+        },
+      });
+
+      const { appDataContent, appDataHex } = await metadataApi.getAppDataInfo(appDataDoc);
+      // console.log("[CowSwap]", { appDataContent, appDataHex });
+      const auctionValidTo = Math.floor(Date.now() / 1000) + orderConfig.fulfilmentBuffer;
+
+      const orderId = await orderBookApi
+        .sendOrder({
+          sellToken: auction.sellToken,
+          buyToken: auction.buyToken,
+          receiver: expectedFillContract.result,
+          sellAmount: auction.sellAmount.toString(),
+          buyAmount: auction.bidAmount.toString(),
+          validTo: auctionValidTo,
+          appData: appDataContent,
+          feeAmount: "0",
+          kind: OrderKind.SELL,
+          partiallyFillable: true,
+          sellTokenBalance: SellTokenSource.ERC20,
+          buyTokenBalance: BuyTokenDestination.ERC20,
+          signature: encodeCowswapOrder({
+            sellToken: auction.sellToken,
+            buyToken: auction.buyToken,
+            sellAmount: auction.sellAmount,
+            buyAmount: auction.bidAmount,
+            validTo: auctionValidTo,
+            appData: appDataHex as Hex,
+            receiver: expectedFillContract.result,
+          }),
+          signingScheme: SigningScheme.EIP1271,
+          from: expectedFillContract.result,
+        })
+        .catch((error) => {
+          console.error("[CowSwap][Error]", error);
+
+          return "!!! FAILED !!!";
+        });
+
+      // TODO: Add order submission data like tokens, prices, etc.
+      console.log(
+        `[AuctionOrder]`,
+        `[${folioData.folioAddress}-${targetAuctionId}]`,
+        // `Price: ${formatUnits(auction.sellAuctionSize, 18)}`,
+        `Order ID: ${orderId}`,
+      );
+    }
+  } else {
+    console.log(`[FolioParsing]`, `Auction Inactive ❌`);
+  }
+
+  console.log(`[Sleeping]`, `[${orderConfig.waitingDuration}s]`, `${folioData.folioAddress} on ${folioData.chainId}`);
+  await sleep(orderConfig.waitingDuration * 1000);
 }
