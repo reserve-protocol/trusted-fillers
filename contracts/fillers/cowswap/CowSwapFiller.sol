@@ -105,6 +105,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     /// Collect all balances back to the beneficiary
     function closeFiller() external {
+        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
         _rescueToken(sellToken);
