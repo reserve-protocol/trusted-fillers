@@ -85,6 +85,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         return this.isValidSignature.selector;
     }
 
+    /// @dev Helper function for offchain orderHash calculation & validation
+    function getOrderHash(bytes calldata signature) external view returns (bytes32) {
+        GPv2OrderLib.Data memory order = abi.decode(signature, (GPv2OrderLib.Data));
+
+        return order.hash(GPV2_SETTLEMENT.domainSeparator());
+    }
+
     /// @return true if the contract is mid-swap and funds have not yet settled
     function swapActive() public view returns (bool) {
         if (block.number != blockInitialized) {
