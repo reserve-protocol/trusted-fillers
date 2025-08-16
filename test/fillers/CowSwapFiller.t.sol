@@ -74,6 +74,27 @@ contract CowSwapFillerFillerTest is BaseTest {
         trustedFiller.isValidSignature(bytes32(uint256(123)), abi.encode(order));
     }
 
+    function test_CowSwap_getOrderHash() public view {
+        GPv2OrderLib.Data memory order = GPv2OrderLib.Data({
+            sellToken: sellToken,
+            buyToken: buyToken,
+            receiver: address(trustedFiller),
+            sellAmount: sellAmount,
+            buyAmount: minBuyAmount,
+            validTo: uint32(block.timestamp + 1),
+            appData: bytes32(0),
+            feeAmount: 0,
+            kind: GPv2OrderLib.KIND_SELL,
+            partiallyFillable: true,
+            sellTokenBalance: GPv2OrderLib.BALANCE_ERC20,
+            buyTokenBalance: GPv2OrderLib.BALANCE_ERC20
+        });
+        bytes32 orderHash = GPv2OrderLib.hash(order, GPV2_SETTLEMENT.domainSeparator());
+        bytes32 returnHash = trustedFiller.getOrderHash(abi.encode(order));
+
+        vm.assertTrue(returnHash == orderHash);
+    }
+
     function test_CowSwap_swapActive() public {
         assertFalse(trustedFiller.swapActive());
 
