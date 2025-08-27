@@ -24,4 +24,6 @@ interface IBaseTrustedFiller is IERC1271 {
     function closeFiller() external;
 
     function rescueToken(IERC20 token) external;
+
+    function setPartiallyFillable(bool _partiallyFillable) external;
 }

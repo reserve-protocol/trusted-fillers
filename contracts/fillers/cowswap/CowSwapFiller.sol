@@ -29,6 +29,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     uint256 public blockInitialized; // {block}
 
     uint256 public price; // D27{buyTok/sellTok}
+    bool public partiallyFillable;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -76,6 +77,10 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use ERC20 Balance
         require(order.sellAmount != 0, CowSwapFiller__OrderCheckFailed(7)); // catch div-by-zero below
 
+        if (!partiallyFillable) {
+            require(!order.partiallyFillable, CowSwapFiller__OrderCheckFailed(8)); // Invalid Partially Fillable
+        }
+
         // Price check, just in case
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
         uint256 orderPrice = Math.mulDiv(order.buyAmount, D27, order.sellAmount, Math.Rounding.Floor);
@@ -117,6 +122,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
         _rescueToken(sellToken);
         _rescueToken(buyToken);
+    }
+
+    function setPartiallyFillable(bool _partiallyFillable) external {
+        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+        require(block.number == blockInitialized, CowSwapFiller__Unauthorized());
+
+        partiallyFillable = _partiallyFillable;
     }
 
     /// Rescue tokens in case any are left in the contract
