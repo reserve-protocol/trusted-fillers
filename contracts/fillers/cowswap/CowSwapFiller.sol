@@ -51,6 +51,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         sellAmount = _sellAmount;
 
         blockInitialized = block.number;
+        partiallyFillable = true;
 
         // D27{buyTok/sellTok} = {buyTok} * D27 / {sellTok}
         price = Math.mulDiv(_minBuyAmount, D27, _sellAmount, Math.Rounding.Ceil);
