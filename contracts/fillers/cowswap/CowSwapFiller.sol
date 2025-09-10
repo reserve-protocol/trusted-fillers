@@ -80,6 +80,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
         if (!partiallyFillable) {
             require(!order.partiallyFillable, CowSwapFiller__OrderCheckFailed(8)); // Invalid Partially Fillable
+            require(order.sellAmount == sellAmount, CowSwapFiller__OrderCheckFailed(9)); // Invalid sell amount
         }
 
         // Price check, just in case
