@@ -19,6 +19,8 @@ interface IBaseTrustedFiller is IERC1271 {
 
     function sellToken() external view returns (IERC20);
 
+    function sellAmount() external view returns (uint256);
+
     function swapActive() external view returns (bool);
 
     function closeFiller() external;
