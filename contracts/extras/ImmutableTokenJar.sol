@@ -41,6 +41,13 @@ contract ImmutableTokenJar is Ownable {
         token.safeTransfer(destination, balance);
     }
 
+    /// @dev Helper function for offchain orderHash calculation & validation
+    function getOrderHash(bytes calldata signature) external view returns (bytes32) {
+        OrderData memory orderData = abi.decode(signature, (OrderData));
+
+        return orderData.order.hash(GPV2_SETTLEMENT.domainSeparator());
+    }
+
     /// @dev Validates CowSwap order for a fill via EIP-1271
     function isValidSignature(bytes32 orderHash, bytes calldata signature) external view returns (bytes4) {
         OrderData memory orderData = abi.decode(signature, (OrderData));
