@@ -2,20 +2,27 @@
 pragma solidity ^0.8.28;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
-import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER, D27 } from "@src/fillers/cowswap/Constants.sol";
+import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "@src/fillers/cowswap/Constants.sol";
 
-contract ImmutableTokenJar {
+contract ImmutableTokenJar is Ownable {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
 
     address public immutable destination;
     IERC20 public immutable token;
 
+    struct OrderData {
+        GPv2OrderLib.Data order;
+        bytes userSignature;
+    }
+
     error ImmutableTokenJar__OrderCheckFailed(uint256 errorCode);
 
-    constructor(address _destination, IERC20 _token) {
+    constructor(address _destination, IERC20 _token, address _signer) Ownable(_signer) {
         destination = _destination;
         token = _token;
     }
@@ -36,8 +43,8 @@ contract ImmutableTokenJar {
 
     /// @dev Validates CowSwap order for a fill via EIP-1271
     function isValidSignature(bytes32 orderHash, bytes calldata signature) external view returns (bytes4) {
-        // Decode signature to get the CowSwap order
-        GPv2OrderLib.Data memory order = abi.decode(signature, (GPv2OrderLib.Data));
+        OrderData memory orderData = abi.decode(signature, (OrderData));
+        GPv2OrderLib.Data memory order = orderData.order;
 
         // Verify Order Hash
         require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), ImmutableTokenJar__OrderCheckFailed(0)); // Invalid Order Hash
@@ -49,6 +56,14 @@ contract ImmutableTokenJar {
         require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, ImmutableTokenJar__OrderCheckFailed(6)); // Must use ERC20 Balance
         require(order.sellAmount != 0, ImmutableTokenJar__OrderCheckFailed(7));
         require(order.buyAmount != 0, ImmutableTokenJar__OrderCheckFailed(8));
+
+        if (owner() != address(0)) {
+            address signer = ECDSA.recover(orderHash, orderData.userSignature);
+
+            if (signer != owner()) {
+                revert ImmutableTokenJar__OrderCheckFailed(100); // Unauthorized Signer
+            }
+        }
 
         // If all checks pass, return the magic value
         return this.isValidSignature.selector;
