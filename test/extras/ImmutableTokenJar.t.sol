@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockEIP712 } from "@mock/MockEIP712.sol";
 
@@ -33,7 +34,7 @@ contract ImmutableTokenJarTest is Test {
         sellToken = new MockERC20("Sell Token", "SELL", 18);
         buyToken = new MockERC20("Buy Token", "BUY", 18);
 
-        ownerPk = 0xA11CE;
+        ownerPk = 0xb93542f3d387519a84549b74c3f1948cff1b08ec464ee031e4068901648fa726;
         owner = vm.addr(ownerPk);
 
         jar = new ImmutableTokenJar(destination, buyToken, owner);
@@ -67,7 +68,7 @@ contract ImmutableTokenJarTest is Test {
         signature = abi.encode(orderData);
     }
 
-    function test_ImmutableTokenJar_isValidSignature_ownerSignatureRequired() public {
+    function test_ImmutableTokenJar_isValidSignature_ownerSignatureRequired() public view {
         GPv2OrderLib.Data memory order = _defaultOrder();
         bytes32 orderHash = order.hash(GPV2_SETTLEMENT.domainSeparator());
 
@@ -106,6 +107,35 @@ contract ImmutableTokenJarTest is Test {
 
         bytes memory signature = _encode1271Signature(order, "");
         bytes4 magic = jar.isValidSignature(orderHash, signature);
+        assertEq(magic, jar.isValidSignature.selector);
+    }
+
+    function test_ImmutableTokenJar_isValidSignature_verifyOffchainHash() public view {
+        // Offchain hash calculated via the included script
+
+        GPv2OrderLib.Data memory order = GPv2OrderLib.Data({
+            sellToken: sellToken,
+            buyToken: buyToken,
+            receiver: address(jar),
+            sellAmount: 1e18,
+            buyAmount: 2e18,
+            validTo: 1730000000,
+            appData: 0x0000000000000000000000000000000000000000000000000000000000000000,
+            feeAmount: 0,
+            kind: GPv2OrderLib.KIND_SELL,
+            partiallyFillable: false,
+            sellTokenBalance: GPv2OrderLib.BALANCE_ERC20,
+            buyTokenBalance: GPv2OrderLib.BALANCE_ERC20
+        });
+
+        bytes32 orderHash = jar.getOrderHash(_encode1271Signature(order, ""));
+        bytes4 magic = jar.isValidSignature(
+            orderHash,
+            _encode1271Signature(
+                order,
+                hex"5c996ef9c3efecd26bcfb74c188b1703e68d1d03500e0b3559d04bdeed63a26d021b1a05a89a6bc308c465a3fc17978516fa7f9e7356f126aea0d372bc5a64bf1b"
+            )
+        );
         assertEq(magic, jar.isValidSignature.selector);
     }
 }
