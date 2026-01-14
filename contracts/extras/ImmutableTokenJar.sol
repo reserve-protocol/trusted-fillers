@@ -4,11 +4,12 @@ pragma solidity ^0.8.28;
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
 import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "@src/fillers/cowswap/Constants.sol";
 
-contract ImmutableTokenJar is Ownable {
+contract ImmutableTokenJar is Ownable, IERC1271 {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
 
@@ -36,9 +37,7 @@ contract ImmutableTokenJar is Ownable {
 
     /// @dev Transfers all held `token` to `destination`
     function pushTokens() external {
-        uint256 balance = token.balanceOf(address(this));
-
-        token.safeTransfer(destination, balance);
+        token.safeTransfer(destination, token.balanceOf(address(this)));
     }
 
     /// @dev Helper function for offchain orderHash calculation & validation
