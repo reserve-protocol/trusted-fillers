@@ -21,9 +21,13 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         bytes userSignature;
     }
 
+    error ImmutableTokenJar__InvalidInitialization(uint256 errorCode);
     error ImmutableTokenJar__OrderCheckFailed(uint256 errorCode);
 
     constructor(address _destination, IERC20 _token, address _signer) Ownable(_signer) {
+        require(_destination != address(0), ImmutableTokenJar__InvalidInitialization(1));
+        require(address(_token) != address(0), ImmutableTokenJar__InvalidInitialization(2));
+
         destination = _destination;
         token = _token;
     }
@@ -35,7 +39,7 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         }
     }
 
-    /// @dev Transfers all held `token` to `destination`
+    /// @dev Transfers all held `token` to `destination`, can be used as postHook
     function pushTokens() external {
         token.safeTransfer(destination, token.balanceOf(address(this)));
     }
@@ -55,6 +59,7 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         // Verify Order Hash
         require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), ImmutableTokenJar__OrderCheckFailed(0)); // Invalid Order Hash
 
+        require(order.sellToken != token, ImmutableTokenJar__OrderCheckFailed(1)); // Invalid Sell Token
         require(order.buyToken == token, ImmutableTokenJar__OrderCheckFailed(2)); // Invalid Buy Token
         require(order.feeAmount == 0, ImmutableTokenJar__OrderCheckFailed(3)); // Must be a Limit Order
         require(order.receiver == address(this), ImmutableTokenJar__OrderCheckFailed(4)); // Receiver must be self
