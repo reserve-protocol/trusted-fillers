@@ -7,6 +7,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockEIP712 } from "@mock/MockEIP712.sol";
 
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
 import { ImmutableTokenJar } from "@src/extras/ImmutableTokenJar.sol";
 import { GPV2_SETTLEMENT } from "@src/fillers/cowswap/Constants.sol";
 import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
@@ -72,9 +74,9 @@ contract ImmutableTokenJarTest is Test {
         GPv2OrderLib.Data memory order = _defaultOrder();
         bytes32 orderHash = order.hash(GPV2_SETTLEMENT.domainSeparator());
 
-        // Sign the *typed data digest* directly (no personal_sign prefix),
-        // matching how GPv2 order hashes are signed.
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPk, orderHash);
+        // Sign the EIP-191 prefixed hash, matching `toEthSignedMessageHash` in the jar.
+        bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(orderHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPk, messageHash);
         bytes memory userSig = abi.encodePacked(r, s, v);
 
         bytes memory signature = _encode1271Signature(order, userSig);
