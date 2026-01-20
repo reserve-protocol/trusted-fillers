@@ -133,7 +133,7 @@ contract ImmutableTokenJarTest is Test {
             orderHash,
             _encode1271Signature(
                 order,
-                hex"5c996ef9c3efecd26bcfb74c188b1703e68d1d03500e0b3559d04bdeed63a26d021b1a05a89a6bc308c465a3fc17978516fa7f9e7356f126aea0d372bc5a64bf1b"
+                hex"294f6fa5329fbc524ed25b2c6e8cf5bcf050d8a532a1997528bedcb2dea33e8e75db0589925f781d16f13d3aae180e6aba7fa8b4959b2c52d918b2c75138babf1b"
             )
         );
         assertEq(magic, jar.isValidSignature.selector);

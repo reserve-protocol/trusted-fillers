@@ -1,4 +1,4 @@
-import { http, createPublicClient, parseUnits } from "viem";
+import { http, createPublicClient, parseUnits, Hex } from "viem";
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import {
@@ -10,6 +10,7 @@ import {
   OrderSigningUtils,
   setGlobalAdapter,
   SigningScheme,
+  OrderBalance,
 } from "@cowprotocol/cow-sdk";
 import { ViemAdapter } from "@cowprotocol/sdk-viem-adapter";
 
@@ -41,8 +42,22 @@ const orderToSign: UnsignedOrder = {
   signingScheme: SigningScheme.EIP712,
 };
 
-const signingResult = await OrderSigningUtils.signOrder(orderToSign, SupportedChainId.MAINNET, adapter.signer);
+const data = await OrderSigningUtils.generateOrderId(
+  SupportedChainId.MAINNET,
+  {
+    ...orderToSign,
+    sellTokenBalance: OrderBalance.ERC20,
+    buyTokenBalance: OrderBalance.ERC20,
+  },
+  {
+    owner: orderToSign.receiver,
+  },
+);
 
-console.log({
-  signingResult,
+const signedMessage = await account.signMessage({
+  message: {
+    raw: data.orderDigest as Hex,
+  },
 });
+
+console.log({ data, signedMessage });

@@ -2,9 +2,11 @@
 pragma solidity ^0.8.28;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
 import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "@src/fillers/cowswap/Constants.sol";
@@ -51,6 +53,10 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         return orderData.order.hash(GPV2_SETTLEMENT.domainSeparator());
     }
 
+    function invalidateOrder(bytes calldata orderUid) external onlyOwner {
+        GPV2_SETTLEMENT.invalidateOrder(orderUid);
+    }
+
     /// @dev Validates CowSwap order for a fill via EIP-1271
     function isValidSignature(bytes32 orderHash, bytes calldata signature) external view returns (bytes4) {
         OrderData memory orderData = abi.decode(signature, (OrderData));
@@ -69,7 +75,8 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         require(order.buyAmount != 0, ImmutableTokenJar__OrderCheckFailed(8));
 
         if (owner() != address(0)) {
-            address signer = ECDSA.recover(orderHash, orderData.userSignature);
+            bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(orderHash);
+            address signer = ECDSA.recover(messageHash, orderData.userSignature);
 
             if (signer != owner()) {
                 revert ImmutableTokenJar__OrderCheckFailed(100); // Unauthorized Signer
