@@ -75,7 +75,7 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         require(order.buyAmount != 0, ImmutableTokenJar__OrderCheckFailed(8));
 
         if (owner() != address(0)) {
-            bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(orderHash);
+            bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(orderHash)));
             address signer = ECDSA.recover(messageHash, orderData.userSignature);
 
             if (signer != owner()) {

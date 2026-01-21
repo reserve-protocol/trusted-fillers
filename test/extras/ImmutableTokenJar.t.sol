@@ -75,7 +75,7 @@ contract ImmutableTokenJarTest is Test {
         bytes32 orderHash = order.hash(GPV2_SETTLEMENT.domainSeparator());
 
         // Sign the EIP-191 prefixed hash, matching `toEthSignedMessageHash` in the jar.
-        bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(orderHash);
+        bytes32 messageHash = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(orderHash)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPk, messageHash);
         bytes memory userSig = abi.encodePacked(r, s, v);
 
@@ -135,7 +135,7 @@ contract ImmutableTokenJarTest is Test {
             orderHash,
             _encode1271Signature(
                 order,
-                hex"294f6fa5329fbc524ed25b2c6e8cf5bcf050d8a532a1997528bedcb2dea33e8e75db0589925f781d16f13d3aae180e6aba7fa8b4959b2c52d918b2c75138babf1b"
+                hex"4ea78dc44538531c465bfc9599b4acf03c36258d11e6bff248e1d5876bdf8ba5045e9be969c41de537efa00e137b53ae4dc9e5b82dff6e8f52c82d6bb0bf00201c"
             )
         );
         assertEq(magic, jar.isValidSignature.selector);

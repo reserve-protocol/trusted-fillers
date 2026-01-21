@@ -1,4 +1,4 @@
-import { http, createPublicClient, parseUnits, Hex } from "viem";
+import { http, createPublicClient, parseUnits, Hex, keccak256 } from "viem";
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import {
@@ -56,7 +56,7 @@ const data = await OrderSigningUtils.generateOrderId(
 
 const signedMessage = await account.signMessage({
   message: {
-    raw: data.orderDigest as Hex,
+    raw: keccak256(data.orderDigest as Hex),
   },
 });
 
