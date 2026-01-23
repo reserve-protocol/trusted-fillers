@@ -11,6 +11,21 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
 import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "@src/fillers/cowswap/Constants.sol";
 
+/**
+ * @title Immutable Token Jar
+ * @notice Simple jar contract that can receive any ERC20 token, convert it to the
+ *         destination token and send it to the destination address, using CowSwap.
+ *
+ * Integration Notes:
+ * 1. Tokens with low liquidity or solver integration might fail to fulfil or
+ *    have poor competition and hence effectiveness. This is designed to work with
+ *    tokens with sufficient liquidity and CowSwap compatibility.
+ * 2. Solvers typically optimize for `score`, see CowSwap Documentation to
+ *    understand how this might impact your order and solver competition.
+ * 3. When run in permissionless mode (ie: no signer), the order submitter can
+ *    claim up to 1% in additional fees as partner fee. You can avoid this
+ *    by using a signer.
+ */
 contract ImmutableTokenJar is Ownable, IERC1271 {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
