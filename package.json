@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "description": "Reserve Trusted Fillers",
   "license": "MIT",
+  "type": "module",
   "dependencies": {
-    "@cowprotocol/app-data": "^2.5.1",
-    "@cowprotocol/cow-sdk": "^5.10.1",
+    "@cowprotocol/app-data": "^3.3.1",
+    "@cowprotocol/cow-sdk": "^7.2.9",
+    "@cowprotocol/sdk-viem-adapter": "^0.3.0",
     "@openzeppelin/contracts": "5.1.0",
     "@openzeppelin/contracts-upgradeable": "5.1.0",
     "@prb/math": "4.1.0",
     "ethers": "^5.7.2",
     "forge-std": "github:foundry-rs/forge-std#v1.9.7",
-    "viem": "^2.23.11"
+    "viem": "^2.44.2"
   },
   "devDependencies": {
     "decimal.js": "^10.5.0",
@@ -20,8 +22,8 @@
     "prettier-plugin-solidity": "^1.4.2",
     "solhint": "^5.0.4",
     "solhint-plugin-prettier": "^0.1.0",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "format": "prettier --write \"./**/*.{js,ts,json,md,sol,yaml,yml}\"",
@@ -33,7 +35,7 @@
     "size": "forge compile --sizes",
     "coverage": "forge coverage --report lcov --no-match-coverage '(script|test)'",
     "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
-    "deploy": "forge script script/Deploy.s.sol:DeployScript --broadcast --slow --skip-simulation",
+    "deploy:jar": "forge script script/DeployImmutableTokenJar.s.sol --slow --verify",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
   },
   "packageManager": "yarn@4.9.2"
