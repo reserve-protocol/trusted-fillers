@@ -1,3 +1,4 @@
 {
-  "typescript.tsdk": "node_modules\\typescript\\lib"
+  "solidity.compileUsingRemoteVersion": "v0.8.28+commit.7893614a",
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }

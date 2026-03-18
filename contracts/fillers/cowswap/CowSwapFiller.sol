@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
+import {IBaseTrustedFiller} from "../../interfaces/IBaseTrustedFiller.sol";
 
-import { GPv2OrderLib } from "./GPv2OrderLib.sol";
-import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER, D27 } from "./Constants.sol";
+import {GPv2OrderLib} from "./GPv2OrderLib.sol";
+import {GPV2_SETTLEMENT, GPV2_VAULT_RELAYER, D27} from "./Constants.sol";
 
 /// Swap MUST occur in the same block as initialization
 /// Expected to be newly deployed in the pre-hook of a CowSwap order
@@ -30,6 +30,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     uint256 public price; // D27{buyTok/sellTok}
     bool public partiallyFillable;
+
+    bool public isClosed;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -122,6 +124,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
+        isClosed = true;
+
         _rescueToken(sellToken);
         _rescueToken(buyToken);
     }
@@ -136,6 +140,7 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     /// Rescue tokens in case any are left in the contract
     function rescueToken(IERC20 token) public {
         require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
+        require(isClosed, CowSwapFiller__Unauthorized()); // Close fill via `closeFiller()` first
 
         _rescueToken(token);
     }
