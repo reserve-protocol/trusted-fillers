@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.25;
 
 interface Gpv2Settlement {
     function domainSeparator() external view returns (bytes32);
