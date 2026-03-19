@@ -34,7 +34,7 @@ jobs:
           version: stable
 
       - name: Install Dependencies
-        run: yarn --immutable
+        run: pnpm install
 
       - name: Core Tests
-        run: yarn test
+        run: pnpm test

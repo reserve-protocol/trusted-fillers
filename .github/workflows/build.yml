@@ -70,4 +70,4 @@ jobs:
 
       - name: Contract Size Check
         run: |
-          yarn size contracts/
+          pnpm size contracts/
