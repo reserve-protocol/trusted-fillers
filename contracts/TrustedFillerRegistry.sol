@@ -5,8 +5,8 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import { IRoleRegistry } from "./interfaces/IRoleRegistry.sol";
 
-import { ITrustedFillerRegistry } from "./interfaces/ITrustedFillerRegistry.sol";
 import { IBaseTrustedFiller } from "./interfaces/IBaseTrustedFiller.sol";
+import { ITrustedFillerRegistry } from "./interfaces/ITrustedFillerRegistry.sol";
 
 /**
  * @title TrustedFillerRegistry
@@ -42,11 +42,10 @@ contract TrustedFillerRegistry is ITrustedFillerRegistry {
         emit TrustedFillerDeprecated(_filler);
     }
 
-    function createTrustedFiller(
-        address senderSource,
-        address trustedFiller,
-        bytes32 deploymentSalt
-    ) external returns (IBaseTrustedFiller trustedFillerInstance) {
+    function createTrustedFiller(address senderSource, address trustedFiller, bytes32 deploymentSalt)
+        external
+        returns (IBaseTrustedFiller trustedFillerInstance)
+    {
         require(trustedFillers[trustedFiller], TrustedFillerRegistry__InvalidFiller());
 
         bytes32 protectedSalt = keccak256(abi.encodePacked(msg.sender, senderSource, deploymentSalt));

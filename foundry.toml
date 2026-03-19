@@ -28,3 +28,14 @@ mainnet = "https://mainnet.gateway.tenderly.co"
 base = {key = "${ETHERSCAN_KEY}"}
 bsc = {key = "${ETHERSCAN_KEY}"}
 mainnet = {key = "${ETHERSCAN_KEY}"}
+
+[fmt]
+bracket_spacing = true
+ignore = []
+prefer_compact = "none"
+single_line_imports = true
+single_line_statement_blocks = "multi"
+sort_imports = true
+
+[lint]
+lint_on_build = false

@@ -10,5 +10,5 @@ contract MockEIP712 is Gpv2Settlement {
         domainSeparator = _domainSeparator;
     }
 
-    function invalidateOrder(bytes calldata) external override {}
+    function invalidateOrder(bytes calldata) external override { }
 }

@@ -3,8 +3,8 @@ pragma solidity ^0.8.28;
 
 import "forge-std/Script.sol";
 
-import { ImmutableTokenJar } from "@src/extras/ImmutableTokenJar.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ImmutableTokenJar } from "@src/extras/ImmutableTokenJar.sol";
 
 string constant junkSeedPhrase = "test test test test test test test test test test test junk";
 

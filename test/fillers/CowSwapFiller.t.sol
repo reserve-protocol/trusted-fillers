@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
 
-import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockEIP712 } from "@mock/MockEIP712.sol";
+import { MockERC20 } from "@mock/MockERC20.sol";
 import { BaseTest, CowSwapFiller } from "@test/base/BaseTest.sol";
 
 import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
@@ -36,9 +36,7 @@ contract CowSwapFillerFillerTest is BaseTest {
         trustedFiller.initialize(address(this), sellToken, buyToken, sellAmount, minBuyAmount);
 
         // deploy a MockEIP712 to the GPV2_SETTLEMENT address
-        address mockEIP712 = address(
-            new MockEIP712(0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943)
-        );
+        address mockEIP712 = address(new MockEIP712(0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943));
         vm.etch(address(GPV2_SETTLEMENT), mockEIP712.code);
     }
 

@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import { ITrustedFillerRegistry } from "../../contracts/interfaces/ITrustedFillerRegistry.sol";
 import { IBaseTrustedFiller } from "../../contracts/interfaces/IBaseTrustedFiller.sol";
+import { ITrustedFillerRegistry } from "../../contracts/interfaces/ITrustedFillerRegistry.sol";
 
 /**
  * @title MockFillerRegistry
@@ -13,19 +13,17 @@ import { IBaseTrustedFiller } from "../../contracts/interfaces/IBaseTrustedFille
  * @dev NOT FOR PRODUCTION USE
  */
 contract MockFillerRegistry is ITrustedFillerRegistry {
-    function addTrustedFiller(IBaseTrustedFiller _filler) external {}
+    function addTrustedFiller(IBaseTrustedFiller _filler) external { }
 
-    function deprecateTrustedFiller(IBaseTrustedFiller _filler) external {}
+    function deprecateTrustedFiller(IBaseTrustedFiller _filler) external { }
 
-    function createTrustedFiller(
-        address senderSource,
-        address trustedFiller,
-        bytes32 deploymentSalt
-    ) external returns (IBaseTrustedFiller trustedFillerInstance) {
+    function createTrustedFiller(address senderSource, address trustedFiller, bytes32 deploymentSalt)
+        external
+        returns (IBaseTrustedFiller trustedFillerInstance)
+    {
         trustedFillerInstance = IBaseTrustedFiller(
             Clones.cloneDeterministic(
-                trustedFiller,
-                keccak256(abi.encodePacked(msg.sender, senderSource, deploymentSalt))
+                trustedFiller, keccak256(abi.encodePacked(msg.sender, senderSource, deploymentSalt))
             )
         );
     }
