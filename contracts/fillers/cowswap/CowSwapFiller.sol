@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IBaseTrustedFiller} from "../../interfaces/IBaseTrustedFiller.sol";
+import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
 
-import {GPv2OrderLib} from "./GPv2OrderLib.sol";
-import {GPV2_SETTLEMENT, GPV2_VAULT_RELAYER, D27} from "./Constants.sol";
+import { D27, GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "./Constants.sol";
+import { GPv2OrderLib } from "./GPv2OrderLib.sol";
 
 /// Swap MUST occur in the same block as initialization
 /// Expected to be newly deployed in the pre-hook of a CowSwap order
@@ -70,14 +70,17 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         GPv2OrderLib.Data memory order = abi.decode(signature, (GPv2OrderLib.Data));
 
         // Verify Order Hash
-        require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), CowSwapFiller__OrderCheckFailed(0)); // Invalid Order Hash
+        require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), CowSwapFiller__OrderCheckFailed(0)); // Invalid
+        // Order Hash
 
         require(order.sellToken == sellToken, CowSwapFiller__OrderCheckFailed(1)); // Invalid Sell Token
         require(order.buyToken == buyToken, CowSwapFiller__OrderCheckFailed(2)); // Invalid Buy Token
         require(order.feeAmount == 0, CowSwapFiller__OrderCheckFailed(3)); // Must be a Limit Order
         require(order.receiver == address(this), CowSwapFiller__OrderCheckFailed(4)); // Receiver must be self
-        require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(5)); // Must use ERC20 Balance
-        require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use ERC20 Balance
+        require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(5)); // Must use
+        // ERC20 Balance
+        require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, CowSwapFiller__OrderCheckFailed(6)); // Must use
+        // ERC20 Balance
         require(order.sellAmount != 0, CowSwapFiller__OrderCheckFailed(7)); // catch div-by-zero below
 
         if (!partiallyFillable) {

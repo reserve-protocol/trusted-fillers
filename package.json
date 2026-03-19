@@ -26,8 +26,8 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "format": "prettier --write \"./**/*.{js,ts,json,md,sol,yaml,yml}\"",
-    "format:check": "prettier --check \"./**/*.{js,ts,json,md,sol,yaml,yml}\"",
+    "format": "prettier --write \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt",
+    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\"",
     "lint": "solhint --fix 'contracts/**/*.sol' 'script/**/*.sol'",
     "lint:check": "solhint 'contracts/**/*.sol' 'script/**/*.sol'",
     "compile": "forge compile",
@@ -37,6 +37,5 @@
     "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
     "deploy:jar": "forge script script/DeployImmutableTokenJar.s.sol --slow --verify",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
-  },
-  "packageManager": "yarn@4.9.2"
+  }
 }

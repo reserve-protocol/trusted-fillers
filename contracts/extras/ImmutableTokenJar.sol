@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
 import { GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "@src/fillers/cowswap/Constants.sol";
+import { GPv2OrderLib } from "@src/fillers/cowswap/GPv2OrderLib.sol";
 
 /**
  * @title Immutable Token Jar
@@ -78,14 +78,17 @@ contract ImmutableTokenJar is Ownable, IERC1271 {
         GPv2OrderLib.Data memory order = orderData.order;
 
         // Verify Order Hash
-        require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), ImmutableTokenJar__OrderCheckFailed(0)); // Invalid Order Hash
+        require(orderHash == order.hash(GPV2_SETTLEMENT.domainSeparator()), ImmutableTokenJar__OrderCheckFailed(0)); // Invalid
+        // Order Hash
 
         require(order.sellToken != token, ImmutableTokenJar__OrderCheckFailed(1)); // Invalid Sell Token
         require(order.buyToken == token, ImmutableTokenJar__OrderCheckFailed(2)); // Invalid Buy Token
         require(order.feeAmount == 0, ImmutableTokenJar__OrderCheckFailed(3)); // Must be a Limit Order
         require(order.receiver == address(this), ImmutableTokenJar__OrderCheckFailed(4)); // Receiver must be self
-        require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, ImmutableTokenJar__OrderCheckFailed(5)); // Must use ERC20 Balance
-        require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, ImmutableTokenJar__OrderCheckFailed(6)); // Must use ERC20 Balance
+        require(order.sellTokenBalance == GPv2OrderLib.BALANCE_ERC20, ImmutableTokenJar__OrderCheckFailed(5)); // Must
+        // use ERC20 Balance
+        require(order.buyTokenBalance == GPv2OrderLib.BALANCE_ERC20, ImmutableTokenJar__OrderCheckFailed(6)); // Must
+        // use ERC20 Balance
         require(order.sellAmount != 0, ImmutableTokenJar__OrderCheckFailed(7));
         require(order.buyAmount != 0, ImmutableTokenJar__OrderCheckFailed(8));
 

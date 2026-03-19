@@ -164,12 +164,10 @@ library GPv2OrderLib {
     /// parameters.
     /// @param owner The address of the user who owns this order.
     /// @param validTo The epoch time at which the order will stop being valid.
-    function packOrderUidParams(
-        bytes memory orderUid,
-        bytes32 orderDigest,
-        address owner,
-        uint32 validTo
-    ) internal pure {
+    function packOrderUidParams(bytes memory orderUid, bytes32 orderDigest, address owner, uint32 validTo)
+        internal
+        pure
+    {
         require(orderUid.length == UID_LENGTH, "GPv2: uid buffer overflow");
 
         // NOTE: Write the order UID to the allocated memory buffer. The order
@@ -212,9 +210,11 @@ library GPv2OrderLib {
     /// parameters.
     /// @return owner The address of the user who owns this order.
     /// @return validTo The epoch time at which the order will stop being valid.
-    function extractOrderUidParams(
-        bytes calldata orderUid
-    ) internal pure returns (bytes32 orderDigest, address owner, uint32 validTo) {
+    function extractOrderUidParams(bytes calldata orderUid)
+        internal
+        pure
+        returns (bytes32 orderDigest, address owner, uint32 validTo)
+    {
         require(orderUid.length == UID_LENGTH, "GPv2: invalid uid");
 
         // Use assembly to efficiently decode packed calldata.

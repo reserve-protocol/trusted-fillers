@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import "forge-std/Test.sol";
 
 import { MockRoleRegistry } from "@mock/MockRoleRegistry.sol";
-import { TrustedFillerRegistry, IRoleRegistry } from "@src/TrustedFillerRegistry.sol";
+import { IRoleRegistry, TrustedFillerRegistry } from "@src/TrustedFillerRegistry.sol";
 
 import { CowSwapFiller } from "@src/fillers/cowswap/CowSwapFiller.sol";
 
@@ -26,5 +26,5 @@ abstract contract BaseTest is Test {
     }
 
     /// @dev Implement this if you want a custom configured deployment
-    function _setUp() public virtual {}
+    function _setUp() public virtual { }
 }

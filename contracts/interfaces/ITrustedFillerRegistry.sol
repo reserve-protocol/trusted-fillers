@@ -16,11 +16,9 @@ interface ITrustedFillerRegistry {
 
     function deprecateTrustedFiller(IBaseTrustedFiller _filler) external;
 
-    function createTrustedFiller(
-        address senderSource,
-        address trustedFiller,
-        bytes32 deploymentSalt
-    ) external returns (IBaseTrustedFiller trustedFillerInstance);
+    function createTrustedFiller(address senderSource, address trustedFiller, bytes32 deploymentSalt)
+        external
+        returns (IBaseTrustedFiller trustedFillerInstance);
 
     function isAllowed(address _filler) external view returns (bool);
 }
