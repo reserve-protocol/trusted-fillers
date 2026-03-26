@@ -129,7 +129,6 @@ library GPv2OrderLib {
         // in the EIP proposal, noting that the order struct has 12 fields, and
         // prefixing the type hash `(1 + 12) * 32 = 416` bytes to hash.
         // <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#rationale-for-encodedata>
-        // solhint-disable-next-line no-inline-assembly
         assembly {
             let dataStart := sub(order, 32)
             let temp := mload(dataStart)
@@ -143,7 +142,6 @@ library GPv2OrderLib {
         // hash is computed from `"\x19\x01" || domainSeparator || structHash`.
         // <https://docs.soliditylang.org/en/v0.7.6/internals/layout_in_memory.html#layout-in-memory>
         // <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification>
-        // solhint-disable-next-line no-inline-assembly
         assembly {
             let freeMemoryPointer := mload(0x40)
             mstore(freeMemoryPointer, "\x19\x01")
@@ -190,7 +188,6 @@ library GPv2OrderLib {
         // Additionally, since Solidity `bytes memory` are length prefixed,
         // 32 needs to be added to all the offsets.
         //
-        // solhint-disable-next-line no-inline-assembly
         assembly {
             mstore(add(orderUid, 56), validTo)
             mstore(add(orderUid, 52), owner)
@@ -218,7 +215,6 @@ library GPv2OrderLib {
         require(orderUid.length == UID_LENGTH, "GPv2: invalid uid");
 
         // Use assembly to efficiently decode packed calldata.
-        // solhint-disable-next-line no-inline-assembly
         assembly {
             orderDigest := calldataload(orderUid.offset)
             owner := shr(96, calldataload(add(orderUid.offset, 32)))

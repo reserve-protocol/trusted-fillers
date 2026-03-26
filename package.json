@@ -17,19 +17,13 @@
   },
   "devDependencies": {
     "decimal.js": "^10.6.0",
-    "expect": "^30.3.0",
     "prettier": "^3.8.1",
-    "prettier-plugin-solidity": "^2.3.1",
-    "solhint": "^6.1.0",
-    "solhint-plugin-prettier": "^0.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "scripts": {
     "format": "prettier --write \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt",
-    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\"",
-    "lint": "solhint --fix 'contracts/**/*.sol' 'script/**/*.sol'",
-    "lint:check": "solhint 'contracts/**/*.sol' 'script/**/*.sol'",
+    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt --check",
     "compile": "forge compile",
     "test": "forge test",
     "size": "forge compile --sizes",
