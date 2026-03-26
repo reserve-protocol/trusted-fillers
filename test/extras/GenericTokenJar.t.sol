@@ -1,0 +1,222 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.28;
+
+import "forge-std/Test.sol";
+
+import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
+import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
+import { MockERC20 } from "@mock/MockERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { GenericTokenJar } from "@src/extras/GenericTokenJar.sol";
+import { CowSwapFiller } from "@src/fillers/cowswap/CowSwapFiller.sol";
+import { BaseTest } from "@test/base/BaseTest.sol";
+
+contract GenericTokenJarTest is BaseTest {
+    GenericTokenJar jar;
+
+    MockERC20 sellToken;
+    MockERC20 buyToken;
+
+    address destination = address(0xBEEF);
+
+    uint256 ownerPk;
+    address owner;
+
+    uint256 constant SELL_AMOUNT = 1e18;
+    uint256 constant MIN_BUY_AMOUNT = 2e18;
+
+    function _setUp() public override {
+        sellToken = new MockERC20("Sell Token", "SELL", 18);
+        buyToken = new MockERC20("Buy Token", "BUY", 18);
+
+        ownerPk = 0xb93542f3d387519a84549b74c3f1948cff1b08ec464ee031e4068901648fa726;
+        owner = vm.addr(ownerPk);
+
+        jar = new GenericTokenJar(destination, buyToken, owner, trustedFillerRegistry);
+    }
+
+    function _defaultRequest() internal view returns (GenericTokenJar.FillRequest memory request) {
+        request = GenericTokenJar.FillRequest({
+            targetFiller: address(cowSwapFiller),
+            sellToken: address(sellToken),
+            sellAmount: SELL_AMOUNT,
+            minBuyAmount: MIN_BUY_AMOUNT,
+            deploymentSalt: bytes32(uint256(1)),
+            deadline: block.timestamp + 1 days
+        });
+    }
+
+    function _signRequest(GenericTokenJar.FillRequest memory request, uint256 signerPk)
+        internal
+        view
+        returns (bytes memory signature)
+    {
+        bytes32 digest = jar.getFillRequestHash(request);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        signature = abi.encodePacked(r, s, v);
+    }
+
+    function _fundJar(GenericTokenJar.FillRequest memory request) internal {
+        sellToken.mint(address(jar), request.sellAmount);
+    }
+
+    function test_GenericTokenJar_constructorValidation() public {
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidInitialization.selector, 1));
+        new GenericTokenJar(address(0), buyToken, owner, trustedFillerRegistry);
+
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidInitialization.selector, 2));
+        new GenericTokenJar(destination, IERC20(address(0)), owner, trustedFillerRegistry);
+
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidInitialization.selector, 3));
+        new GenericTokenJar(destination, buyToken, owner, ITrustedFillerRegistry(address(0)));
+    }
+
+    function test_GenericTokenJar_createTrustedFill() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+
+        assertEq(address(jar.activeTrustedFill()), address(filler));
+        assertEq(CowSwapFiller(address(filler)).fillCreator(), address(jar));
+        assertEq(address(filler.sellToken()), address(sellToken));
+        assertEq(address(filler.buyToken()), address(buyToken));
+        assertEq(filler.sellAmount(), SELL_AMOUNT);
+        assertEq(sellToken.balanceOf(address(filler)), SELL_AMOUNT);
+        assertEq(sellToken.balanceOf(address(jar)), 0);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_revertsOnWrongSigner() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+        bytes memory signature = _signRequest(request, 0xB0B);
+
+        vm.expectRevert(GenericTokenJar.GenericTokenJar__UnauthorizedSigner.selector);
+        jar.createTrustedFill(request, signature);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_revertsOnExpiredRequest() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        request.deadline = block.timestamp - 1;
+        _fundJar(request);
+        bytes memory signature = _signRequest(request, ownerPk);
+
+        vm.expectRevert(GenericTokenJar.GenericTokenJar__ExpiredRequest.selector);
+        jar.createTrustedFill(request, signature);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_revertsOnInvalidRequest() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        request.targetFiller = address(0);
+
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 1));
+        jar.createTrustedFill(request, "");
+
+        request = _defaultRequest();
+        request.sellToken = address(0);
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 2));
+        jar.createTrustedFill(request, "");
+
+        request = _defaultRequest();
+        request.sellAmount = 0;
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 3));
+        jar.createTrustedFill(request, "");
+
+        request = _defaultRequest();
+        request.minBuyAmount = 0;
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 4));
+        jar.createTrustedFill(request, "");
+    }
+
+    function test_GenericTokenJar_createTrustedFill_revertsOnUnapprovedFiller() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        request.targetFiller = address(new CowSwapFiller());
+        _fundJar(request);
+        bytes memory signature = _signRequest(request, ownerPk);
+
+        vm.expectRevert(ITrustedFillerRegistry.TrustedFillerRegistry__InvalidFiller.selector);
+        jar.createTrustedFill(request, signature);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_autoClosesExistingFill() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+        IBaseTrustedFiller firstFiller = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+
+        request.deploymentSalt = bytes32(uint256(2));
+        bytes memory signature = _signRequest(request, ownerPk);
+
+        IBaseTrustedFiller secondFiller = jar.createTrustedFill(request, signature);
+
+        assertEq(address(jar.activeTrustedFill()), address(secondFiller));
+        assertTrue(address(firstFiller) != address(secondFiller));
+        assertEq(sellToken.balanceOf(address(firstFiller)), 0);
+        assertEq(sellToken.balanceOf(address(secondFiller)), SELL_AMOUNT);
+        assertEq(sellToken.balanceOf(address(jar)), 0);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_permissionlessAfterRenounce() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+
+        vm.prank(owner);
+        jar.renounceOwnership();
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, "");
+
+        assertEq(address(jar.activeTrustedFill()), address(filler));
+        assertEq(CowSwapFiller(address(filler)).fillCreator(), address(jar));
+    }
+
+    function test_GenericTokenJar_closeTrustedFill() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+
+        sellToken.burn(address(filler), SELL_AMOUNT);
+        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
+
+        jar.closeTrustedFill();
+
+        assertEq(address(jar.activeTrustedFill()), address(0));
+        assertEq(sellToken.balanceOf(address(jar)), 0);
+        assertEq(buyToken.balanceOf(address(jar)), MIN_BUY_AMOUNT);
+        assertEq(sellToken.balanceOf(address(filler)), 0);
+        assertEq(buyToken.balanceOf(address(filler)), 0);
+    }
+
+    function test_GenericTokenJar_pushTokens() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+
+        sellToken.burn(address(filler), SELL_AMOUNT);
+        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
+
+        jar.closeTrustedFill();
+        jar.pushTokens();
+
+        assertEq(buyToken.balanceOf(destination), MIN_BUY_AMOUNT);
+        assertEq(buyToken.balanceOf(address(jar)), 0);
+    }
+
+    function test_GenericTokenJar_pushTokens_autoClosesTrustedFill() public {
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+
+        sellToken.burn(address(filler), SELL_AMOUNT);
+        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
+
+        jar.pushTokens();
+
+        assertEq(address(jar.activeTrustedFill()), address(0));
+        assertEq(buyToken.balanceOf(destination), MIN_BUY_AMOUNT);
+        assertEq(buyToken.balanceOf(address(jar)), 0);
+        assertEq(sellToken.balanceOf(address(filler)), 0);
+        assertEq(buyToken.balanceOf(address(filler)), 0);
+    }
+}
