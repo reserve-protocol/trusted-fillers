@@ -81,13 +81,12 @@ contract GenericTokenJar is Ownable, EIP712 {
         }
 
         filler = trustedFillerRegistry.createTrustedFiller(msg.sender, request.targetFiller, request.deploymentSalt);
+        activeTrustedFill = filler;
 
         IERC20 sellToken = IERC20(request.sellToken);
 
         sellToken.forceApprove(address(filler), request.sellAmount);
         filler.initialize(address(this), sellToken, token, request.sellAmount, request.minBuyAmount);
-
-        activeTrustedFill = filler;
 
         emit TrustedFillCreated(
             msg.sender,
