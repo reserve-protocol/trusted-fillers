@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
@@ -16,7 +17,7 @@ import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
  * @dev Fill creation can be restricted to owner-signed requests. If ownership is
  *      renounced, fill creation becomes permissionless.
  */
-contract GenericTokenJar is Ownable, EIP712 {
+contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant FILL_REQUEST_TYPEHASH = keccak256(
@@ -69,6 +70,7 @@ contract GenericTokenJar is Ownable, EIP712 {
 
     function createTrustedFill(FillRequest calldata request, bytes calldata ownerSignature)
         external
+        nonReentrant
         returns (IBaseTrustedFiller filler)
     {
         _closeTrustedFill();
@@ -99,11 +101,11 @@ contract GenericTokenJar is Ownable, EIP712 {
         );
     }
 
-    function closeTrustedFill() external {
+    function closeTrustedFill() external nonReentrant {
         _closeTrustedFill();
     }
 
-    function pushTokens() external {
+    function pushTokens() external nonReentrant {
         _closeTrustedFill();
 
         token.safeTransfer(destination, token.balanceOf(address(this)));
@@ -132,6 +134,7 @@ contract GenericTokenJar is Ownable, EIP712 {
         require(request.sellToken != address(0), GenericTokenJar__InvalidRequest(2));
         require(request.sellAmount != 0, GenericTokenJar__InvalidRequest(3));
         require(request.minBuyAmount != 0, GenericTokenJar__InvalidRequest(4));
+        require(request.sellToken != address(token), GenericTokenJar__InvalidRequest(5));
         require(block.timestamp <= request.deadline, GenericTokenJar__ExpiredRequest());
     }
 

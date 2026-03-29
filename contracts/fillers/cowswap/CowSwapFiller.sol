@@ -47,6 +47,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         uint256 _sellAmount,
         uint256 _minBuyAmount
     ) external initializer {
+        require(_sellToken != _buyToken, CowSwapFiller__OrderCheckFailed(200));
+
         fillCreator = _creator;
         sellToken = _sellToken;
         buyToken = _buyToken;
