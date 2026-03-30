@@ -28,7 +28,7 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
     IERC20 public immutable token;
     ITrustedFillerRegistry public immutable trustedFillerRegistry;
 
-    IBaseTrustedFiller public activeTrustedFill;
+    mapping(address sellToken => mapping(address buyToken => address activeTrustedFill)) public activeFillsByTokenPair;
 
     struct FillRequest {
         address targetFiller;
@@ -73,8 +73,8 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         nonReentrant
         returns (IBaseTrustedFiller filler)
     {
-        _closeTrustedFill();
         _validateRequest(request);
+        _closeTrustedFill(request.sellToken, address(token));
 
         if (owner() != address(0)) {
             address signer = ECDSA.recover(_hashTypedDataV4(_hashFillRequest(request)), ownerSignature);
@@ -83,7 +83,7 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         }
 
         filler = trustedFillerRegistry.createTrustedFiller(msg.sender, request.targetFiller, request.deploymentSalt);
-        activeTrustedFill = filler;
+        activeFillsByTokenPair[request.sellToken][address(token)] = address(filler);
 
         IERC20 sellToken = IERC20(request.sellToken);
 
@@ -101,13 +101,11 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         );
     }
 
-    function closeTrustedFill() external nonReentrant {
-        _closeTrustedFill();
+    function closeTrustedFill(address sellToken, address buyToken) external nonReentrant {
+        _closeTrustedFill(sellToken, buyToken);
     }
 
     function pushTokens() external nonReentrant {
-        _closeTrustedFill();
-
         token.safeTransfer(destination, token.balanceOf(address(this)));
     }
 
@@ -138,15 +136,16 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         require(block.timestamp <= request.deadline, GenericTokenJar__ExpiredRequest());
     }
 
-    function _closeTrustedFill() internal {
-        IBaseTrustedFiller filler = activeTrustedFill;
-        if (address(filler) == address(0)) {
+    function _closeTrustedFill(address sellToken, address buyToken) internal {
+        address fillerAddress = activeFillsByTokenPair[sellToken][buyToken];
+        if (fillerAddress == address(0)) {
             return;
         }
 
+        IBaseTrustedFiller filler = IBaseTrustedFiller(fillerAddress);
         filler.closeFiller();
-        delete activeTrustedFill;
+        delete activeFillsByTokenPair[sellToken][buyToken];
 
-        emit TrustedFillClosed(address(filler));
+        emit TrustedFillClosed(fillerAddress);
     }
 }

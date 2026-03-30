@@ -15,6 +15,7 @@ contract GenericTokenJarTest is BaseTest {
     GenericTokenJar jar;
 
     MockERC20 sellToken;
+    MockERC20 secondSellToken;
     MockERC20 buyToken;
 
     address destination = address(0xBEEF);
@@ -27,6 +28,7 @@ contract GenericTokenJarTest is BaseTest {
 
     function _setUp() public override {
         sellToken = new MockERC20("Sell Token", "SELL", 18);
+        secondSellToken = new MockERC20("Second Sell Token", "SELL2", 18);
         buyToken = new MockERC20("Buy Token", "BUY", 18);
 
         ownerPk = 0xb93542f3d387519a84549b74c3f1948cff1b08ec464ee031e4068901648fa726;
@@ -57,7 +59,7 @@ contract GenericTokenJarTest is BaseTest {
     }
 
     function _fundJar(GenericTokenJar.FillRequest memory request) internal {
-        sellToken.mint(address(jar), request.sellAmount);
+        MockERC20(request.sellToken).mint(address(jar), request.sellAmount);
     }
 
     function test_GenericTokenJar_constructorValidation() public {
@@ -77,7 +79,7 @@ contract GenericTokenJarTest is BaseTest {
 
         IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
 
-        assertEq(address(jar.activeTrustedFill()), address(filler));
+        assertEq(jar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(filler));
         assertEq(CowSwapFiller(address(filler)).fillCreator(), address(jar));
         assertEq(address(filler.sellToken()), address(sellToken));
         assertEq(address(filler.buyToken()), address(buyToken));
@@ -148,11 +150,28 @@ contract GenericTokenJarTest is BaseTest {
 
         IBaseTrustedFiller secondFiller = jar.createTrustedFill(request, signature);
 
-        assertEq(address(jar.activeTrustedFill()), address(secondFiller));
+        assertEq(jar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(secondFiller));
         assertTrue(address(firstFiller) != address(secondFiller));
         assertEq(sellToken.balanceOf(address(firstFiller)), 0);
         assertEq(sellToken.balanceOf(address(secondFiller)), SELL_AMOUNT);
         assertEq(sellToken.balanceOf(address(jar)), 0);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_keepsDistinctPairsActive() public {
+        GenericTokenJar.FillRequest memory firstRequest = _defaultRequest();
+        _fundJar(firstRequest);
+        IBaseTrustedFiller firstFiller = jar.createTrustedFill(firstRequest, _signRequest(firstRequest, ownerPk));
+
+        GenericTokenJar.FillRequest memory secondRequest = _defaultRequest();
+        secondRequest.sellToken = address(secondSellToken);
+        secondRequest.deploymentSalt = bytes32(uint256(2));
+        _fundJar(secondRequest);
+        IBaseTrustedFiller secondFiller = jar.createTrustedFill(secondRequest, _signRequest(secondRequest, ownerPk));
+
+        assertEq(jar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(firstFiller));
+        assertEq(jar.activeFillsByTokenPair(address(secondSellToken), address(buyToken)), address(secondFiller));
+        assertEq(sellToken.balanceOf(address(firstFiller)), SELL_AMOUNT);
+        assertEq(secondSellToken.balanceOf(address(secondFiller)), SELL_AMOUNT);
     }
 
     function test_GenericTokenJar_createTrustedFill_permissionlessAfterRenounce() public {
@@ -164,7 +183,7 @@ contract GenericTokenJarTest is BaseTest {
 
         IBaseTrustedFiller filler = jar.createTrustedFill(request, "");
 
-        assertEq(address(jar.activeTrustedFill()), address(filler));
+        assertEq(jar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(filler));
         assertEq(CowSwapFiller(address(filler)).fillCreator(), address(jar));
     }
 
@@ -177,9 +196,9 @@ contract GenericTokenJarTest is BaseTest {
         sellToken.burn(address(filler), SELL_AMOUNT);
         buyToken.mint(address(filler), MIN_BUY_AMOUNT);
 
-        jar.closeTrustedFill();
+        jar.closeTrustedFill(address(sellToken), address(buyToken));
 
-        assertEq(address(jar.activeTrustedFill()), address(0));
+        assertEq(jar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(0));
         assertEq(sellToken.balanceOf(address(jar)), 0);
         assertEq(buyToken.balanceOf(address(jar)), MIN_BUY_AMOUNT);
         assertEq(sellToken.balanceOf(address(filler)), 0);
@@ -195,28 +214,10 @@ contract GenericTokenJarTest is BaseTest {
         sellToken.burn(address(filler), SELL_AMOUNT);
         buyToken.mint(address(filler), MIN_BUY_AMOUNT);
 
-        jar.closeTrustedFill();
+        jar.closeTrustedFill(address(sellToken), address(buyToken));
         jar.pushTokens();
 
         assertEq(buyToken.balanceOf(destination), MIN_BUY_AMOUNT);
         assertEq(buyToken.balanceOf(address(jar)), 0);
-    }
-
-    function test_GenericTokenJar_pushTokens_autoClosesTrustedFill() public {
-        GenericTokenJar.FillRequest memory request = _defaultRequest();
-        _fundJar(request);
-
-        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
-
-        sellToken.burn(address(filler), SELL_AMOUNT);
-        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
-
-        jar.pushTokens();
-
-        assertEq(address(jar.activeTrustedFill()), address(0));
-        assertEq(buyToken.balanceOf(destination), MIN_BUY_AMOUNT);
-        assertEq(buyToken.balanceOf(address(jar)), 0);
-        assertEq(sellToken.balanceOf(address(filler)), 0);
-        assertEq(buyToken.balanceOf(address(filler)), 0);
     }
 }
