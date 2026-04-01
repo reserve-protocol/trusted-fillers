@@ -226,6 +226,32 @@ contract GenericTokenJarTest is BaseTest {
         assertEq(buyToken.balanceOf(address(filler)), 0);
     }
 
+    function test_GenericTokenJar_closeTrustedFill_continuesWhenSellTokenBalanceOfReverts() public {
+        MockRevertingERC20 revertingSellToken = new MockRevertingERC20("Reverting Sell Token", "RSELL", 18);
+
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        request.sellToken = address(revertingSellToken);
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+        revertingSellToken.setRevertingBalanceOfAccount(address(filler));
+        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
+
+        jar.closeTrustedFill(address(revertingSellToken), address(buyToken));
+
+        assertEq(jar.activeFillsByTokenPair(address(revertingSellToken), address(buyToken)), address(0));
+        assertEq(revertingSellToken.balanceOf(address(jar)), 0);
+        assertEq(buyToken.balanceOf(address(jar)), MIN_BUY_AMOUNT);
+
+        vm.expectRevert("MockRevertingERC20: balanceOf reverted");
+        revertingSellToken.balanceOf(address(filler));
+
+        assertEq(buyToken.balanceOf(address(filler)), 0);
+
+        revertingSellToken.setRevertingBalanceOfAccount(address(0));
+        assertEq(revertingSellToken.balanceOf(address(filler)), SELL_AMOUNT);
+    }
+
     function test_GenericTokenJar_pushTokens() public {
         GenericTokenJar.FillRequest memory request = _defaultRequest();
         _fundJar(request);
