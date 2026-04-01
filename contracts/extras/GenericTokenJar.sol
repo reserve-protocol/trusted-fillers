@@ -40,7 +40,6 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         uint256 deadline;
     }
 
-    error GenericTokenJar__ExpiredRequest();
     error GenericTokenJar__InvalidInitialization(uint256 errorCode);
     error GenericTokenJar__InvalidRequest(uint256 errorCode);
     error GenericTokenJar__UnauthorizedSigner();
@@ -135,7 +134,11 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         require(request.sellAmount != 0, GenericTokenJar__InvalidRequest(4));
         require(request.minBuyAmount != 0, GenericTokenJar__InvalidRequest(5));
         require(request.sellToken != address(token), GenericTokenJar__InvalidRequest(6));
-        require(block.timestamp <= request.deadline, GenericTokenJar__ExpiredRequest());
+        require(block.timestamp <= request.deadline, GenericTokenJar__InvalidRequest(7));
+
+        IBaseTrustedFiller filler = IBaseTrustedFiller(request.targetFiller);
+
+        require(filler.version() >= 2, GenericTokenJar__InvalidRequest(100));
     }
 
     function _closeTrustedFill(address sellToken, address buyToken) internal {
