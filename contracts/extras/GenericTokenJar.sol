@@ -32,6 +32,7 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
 
     struct FillRequest {
         address targetFiller;
+        address relayer;
         address sellToken;
         uint256 sellAmount;
         uint256 minBuyAmount;
@@ -129,10 +130,11 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
 
     function _validateRequest(FillRequest calldata request) internal view {
         require(request.targetFiller != address(0), GenericTokenJar__InvalidRequest(1));
-        require(request.sellToken != address(0), GenericTokenJar__InvalidRequest(2));
-        require(request.sellAmount != 0, GenericTokenJar__InvalidRequest(3));
-        require(request.minBuyAmount != 0, GenericTokenJar__InvalidRequest(4));
-        require(request.sellToken != address(token), GenericTokenJar__InvalidRequest(5));
+        require(request.relayer == msg.sender, GenericTokenJar__InvalidRequest(2));
+        require(request.sellToken != address(0), GenericTokenJar__InvalidRequest(3));
+        require(request.sellAmount != 0, GenericTokenJar__InvalidRequest(4));
+        require(request.minBuyAmount != 0, GenericTokenJar__InvalidRequest(5));
+        require(request.sellToken != address(token), GenericTokenJar__InvalidRequest(6));
         require(block.timestamp <= request.deadline, GenericTokenJar__ExpiredRequest());
     }
 

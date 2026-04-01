@@ -41,6 +41,7 @@ contract GenericTokenJarTest is BaseTest {
     function _defaultRequest() internal view returns (GenericTokenJar.FillRequest memory request) {
         request = GenericTokenJar.FillRequest({
             targetFiller: address(cowSwapFiller),
+            relayer: address(this),
             sellToken: address(sellToken),
             sellAmount: SELL_AMOUNT,
             minBuyAmount: MIN_BUY_AMOUNT,
@@ -116,18 +117,28 @@ contract GenericTokenJarTest is BaseTest {
         jar.createTrustedFill(request, "");
 
         request = _defaultRequest();
-        request.sellToken = address(0);
+        request.relayer = address(0xB0B);
         vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 2));
         jar.createTrustedFill(request, "");
 
         request = _defaultRequest();
-        request.sellAmount = 0;
+        request.sellToken = address(0);
         vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 3));
         jar.createTrustedFill(request, "");
 
         request = _defaultRequest();
-        request.minBuyAmount = 0;
+        request.sellAmount = 0;
         vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 4));
+        jar.createTrustedFill(request, "");
+
+        request = _defaultRequest();
+        request.minBuyAmount = 0;
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 5));
+        jar.createTrustedFill(request, "");
+
+        request = _defaultRequest();
+        request.sellToken = address(buyToken);
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 6));
         jar.createTrustedFill(request, "");
     }
 
