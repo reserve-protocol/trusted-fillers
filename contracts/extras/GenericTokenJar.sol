@@ -143,7 +143,12 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         }
 
         IBaseTrustedFiller filler = IBaseTrustedFiller(fillerAddress);
-        filler.closeFiller();
+
+        try filler.closeFiller() { }
+        catch {
+            filler.emergencyCloseFiller();
+        }
+
         delete activeFillsByTokenPair[sellToken][buyToken];
 
         emit TrustedFillClosed(fillerAddress);

@@ -7,13 +7,15 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
 
+import { Versioned } from "../../utils/Versioned.sol";
+
 import { D27, GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "./Constants.sol";
 import { GPv2OrderLib } from "./GPv2OrderLib.sol";
 
 /// Swap MUST occur in the same block as initialization
 /// Expected to be newly deployed in the pre-hook of a CowSwap order
 /// Ideally `closeFiller()` is called in the end as a post-hook, but this is not relied upon
-contract CowSwapFiller is Initializable, IBaseTrustedFiller {
+contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
 
@@ -36,6 +38,11 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
+    }
+
+    modifier onlyFillCreator() {
+        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+        _;
     }
 
     /// Initialize the swap, transferring in `_sellAmount` of the `_sell` token
@@ -122,18 +129,17 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
     }
 
     /// Collect all balances back to the beneficiary
-    function closeFiller() external {
-        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+    function closeFiller() external onlyFillCreator {
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
-        isClosed = true;
-
-        _rescueToken(sellToken);
-        _rescueToken(buyToken);
+        _closeFiller();
     }
 
-    function setPartiallyFillable(bool _partiallyFillable) external {
-        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+    function emergencyCloseFiller() external onlyFillCreator {
+        _closeFiller();
+    }
+
+    function setPartiallyFillable(bool _partiallyFillable) external onlyFillCreator {
         require(block.number == blockInitialized, CowSwapFiller__Unauthorized());
 
         partiallyFillable = _partiallyFillable;
@@ -141,7 +147,6 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     /// Rescue tokens in case any are left in the contract
     function rescueToken(IERC20 token) public {
-        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
         require(isClosed, CowSwapFiller__Unauthorized()); // Close fill via `closeFiller()` first
 
         _rescueToken(token);
@@ -153,5 +158,12 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         if (tokenBalance != 0) {
             token.safeTransfer(fillCreator, tokenBalance);
         }
+    }
+
+    function _closeFiller() internal {
+        isClosed = true;
+
+        try this.rescueToken(IERC20(sellToken)) { } catch { }
+        try this.rescueToken(IERC20(buyToken)) { } catch { }
     }
 }

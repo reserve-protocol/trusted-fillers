@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
 import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
+import { MockRevertingERC20 } from "@mock/MockRevertingERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { GenericTokenJar } from "@src/extras/GenericTokenJar.sol";
 import { CowSwapFiller } from "@src/fillers/cowswap/CowSwapFiller.sol";
@@ -202,6 +203,26 @@ contract GenericTokenJarTest is BaseTest {
         assertEq(sellToken.balanceOf(address(jar)), 0);
         assertEq(buyToken.balanceOf(address(jar)), MIN_BUY_AMOUNT);
         assertEq(sellToken.balanceOf(address(filler)), 0);
+        assertEq(buyToken.balanceOf(address(filler)), 0);
+    }
+
+    function test_GenericTokenJar_closeTrustedFill_continuesWhenSellTokenRescueReverts() public {
+        MockRevertingERC20 revertingSellToken = new MockRevertingERC20("Reverting Sell Token", "RSELL", 18);
+
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        request.sellToken = address(revertingSellToken);
+        _fundJar(request);
+
+        IBaseTrustedFiller filler = jar.createTrustedFill(request, _signRequest(request, ownerPk));
+        revertingSellToken.setRevertingReceiver(address(jar));
+        buyToken.mint(address(filler), MIN_BUY_AMOUNT);
+
+        jar.closeTrustedFill(address(revertingSellToken), address(buyToken));
+
+        assertEq(jar.activeFillsByTokenPair(address(revertingSellToken), address(buyToken)), address(0));
+        assertEq(revertingSellToken.balanceOf(address(jar)), 0);
+        assertEq(buyToken.balanceOf(address(jar)), MIN_BUY_AMOUNT);
+        assertEq(revertingSellToken.balanceOf(address(filler)), SELL_AMOUNT);
         assertEq(buyToken.balanceOf(address(filler)), 0);
     }
 
