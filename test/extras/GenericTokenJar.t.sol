@@ -105,7 +105,7 @@ contract GenericTokenJarTest is BaseTest {
         _fundJar(request);
         bytes memory signature = _signRequest(request, ownerPk);
 
-        vm.expectRevert(GenericTokenJar.GenericTokenJar__ExpiredRequest.selector);
+        vm.expectRevert(abi.encodeWithSelector(GenericTokenJar.GenericTokenJar__InvalidRequest.selector, 7));
         jar.createTrustedFill(request, signature);
     }
 
