@@ -136,11 +136,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     }
 
     function emergencyCloseFiller() external onlyFillCreator {
+        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
+
         _closeFiller();
     }
 
     function setPartiallyFillable(bool _partiallyFillable) external onlyFillCreator {
-        require(block.number == blockInitialized, CowSwapFiller__Unauthorized());
+        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
 
         partiallyFillable = _partiallyFillable;
     }
