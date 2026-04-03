@@ -112,20 +112,20 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
 
     /// @return true if the contract is mid-swap and funds have not yet settled
     function swapActive() public view returns (bool) {
-        if (block.number != blockInitialized) {
-            return false;
+        if (_sameBlock()) {
+            uint256 sellTokenBalance = sellToken.balanceOf(address(this));
+
+            if (sellTokenBalance >= sellAmount) {
+                return false;
+            }
+
+            // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
+            uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
+
+            return minimumExpectedIn > buyToken.balanceOf(address(this));
         }
 
-        uint256 sellTokenBalance = sellToken.balanceOf(address(this));
-
-        if (sellTokenBalance >= sellAmount) {
-            return false;
-        }
-
-        // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
-        uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
-
-        return minimumExpectedIn > buyToken.balanceOf(address(this));
+        return false;
     }
 
     /// Collect all balances back to the beneficiary
@@ -136,13 +136,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     }
 
     function emergencyCloseFiller() external onlyFillCreator {
-        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
+        require(!_sameBlock(), CowSwapFiller__Unauthorized());
 
         _closeFiller();
     }
 
     function setPartiallyFillable(bool _partiallyFillable) external onlyFillCreator {
-        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
+        require(_sameBlock(), CowSwapFiller__Unauthorized());
 
         partiallyFillable = _partiallyFillable;
     }
@@ -167,5 +167,9 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
 
         try this.rescueToken(IERC20(sellToken)) { } catch { }
         try this.rescueToken(IERC20(buyToken)) { } catch { }
+    }
+
+    function _sameBlock() internal view returns (bool) {
+        return block.number == blockInitialized;
     }
 }
