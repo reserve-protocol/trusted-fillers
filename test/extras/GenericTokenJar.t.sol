@@ -228,6 +228,7 @@ contract GenericTokenJarTest is BaseTest {
         revertingSellToken.setRevertingReceiver(address(jar));
         buyToken.mint(address(filler), MIN_BUY_AMOUNT);
 
+        vm.roll(block.number + 1);
         jar.closeTrustedFill(address(revertingSellToken), address(buyToken));
 
         assertEq(jar.activeFillsByTokenPair(address(revertingSellToken), address(buyToken)), address(0));

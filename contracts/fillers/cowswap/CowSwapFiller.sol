@@ -132,13 +132,13 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     function closeFiller() external onlyFillCreator {
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
-        _closeFiller();
+        _closeFiller(false);
     }
 
     function emergencyCloseFiller() external onlyFillCreator {
         require(!_sameBlock(), CowSwapFiller__Unauthorized());
 
-        _closeFiller();
+        _closeFiller(true);
     }
 
     function setPartiallyFillable(bool _partiallyFillable) external onlyFillCreator {
@@ -162,11 +162,16 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
         }
     }
 
-    function _closeFiller() internal {
+    function _closeFiller(bool tryCatch) internal {
         isClosed = true;
 
-        try this.rescueToken(IERC20(sellToken)) { } catch { }
-        try this.rescueToken(IERC20(buyToken)) { } catch { }
+        if (tryCatch) {
+            try this.rescueToken(IERC20(sellToken)) { } catch { }
+            try this.rescueToken(IERC20(buyToken)) { } catch { }
+        } else {
+            _rescueToken(IERC20(sellToken));
+            _rescueToken(IERC20(buyToken));
+        }
     }
 
     function _sameBlock() internal view returns (bool) {

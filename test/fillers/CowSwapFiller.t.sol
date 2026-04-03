@@ -116,13 +116,13 @@ contract CowSwapFillerFillerTest is BaseTest {
         assertEq(sellToken.balanceOf(address(trustedFiller)), 0);
     }
 
-    function test_CowSwap_setPartiallyFillable_onlyAfterInitializationBlock() public {
-        vm.expectRevert(abi.encodeWithSelector(CowSwapFiller.CowSwapFiller__Unauthorized.selector));
+    function test_CowSwap_setPartiallyFillable_onlyInInitializationBlock() public {
         trustedFiller.setPartiallyFillable(false);
+        assertFalse(trustedFiller.partiallyFillable());
 
         vm.roll(block.number + 1);
-        trustedFiller.setPartiallyFillable(false);
 
-        assertFalse(trustedFiller.partiallyFillable());
+        vm.expectRevert(abi.encodeWithSelector(CowSwapFiller.CowSwapFiller__Unauthorized.selector));
+        trustedFiller.setPartiallyFillable(true);
     }
 }
