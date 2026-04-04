@@ -18,6 +18,7 @@ const domain = {
 const types = {
   FillRequest: [
     { name: "targetFiller", type: "address" },
+    { name: "relayer", type: "address" },
     { name: "sellToken", type: "address" },
     { name: "sellAmount", type: "uint256" },
     { name: "minBuyAmount", type: "uint256" },
@@ -28,6 +29,7 @@ const types = {
 
 const request = {
   targetFiller: "0xF62849F9A0B5Bf2913b396098F7c7019b51A820a",
+  relayer: "0x0000000000000000000000000000000000000000",
   sellToken: "0x2e234DAe75C793f67A35089C9d99245E1C58470b",
   sellAmount: parseUnits("1", 18),
   minBuyAmount: parseUnits("2", 18),
