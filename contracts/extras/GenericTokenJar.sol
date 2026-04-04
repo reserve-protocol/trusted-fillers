@@ -118,6 +118,7 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
             abi.encode(
                 FILL_REQUEST_TYPEHASH,
                 request.targetFiller,
+                request.relayer,
                 request.sellToken,
                 request.sellAmount,
                 request.minBuyAmount,
