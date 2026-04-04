@@ -21,7 +21,7 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant FILL_REQUEST_TYPEHASH = keccak256(
-        "FillRequest(address targetFiller,address sellToken,uint256 sellAmount,uint256 minBuyAmount,bytes32 deploymentSalt,uint256 deadline)"
+        "FillRequest(address targetFiller,address relayer,address sellToken,uint256 sellAmount,uint256 minBuyAmount,bytes32 deploymentSalt,uint256 deadline)"
     );
 
     address public immutable destination;
