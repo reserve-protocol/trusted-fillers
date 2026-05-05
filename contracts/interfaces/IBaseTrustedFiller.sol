@@ -33,3 +33,7 @@ interface IBaseTrustedFiller is IERC1271, IVersioned {
 
     function setPartiallyFillable(bool _partiallyFillable) external;
 }
+
+interface IBaseTrustedFiller2 is IBaseTrustedFiller {
+    function emergencyCloseFiller() external;
+}
