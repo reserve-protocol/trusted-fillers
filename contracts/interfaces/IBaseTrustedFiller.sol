@@ -27,13 +27,10 @@ interface IBaseTrustedFiller is IERC1271, IVersioned {
 
     function closeFiller() external;
 
-    function emergencyCloseFiller() external;
-
     function rescueToken(IERC20 token) external;
 
     function setPartiallyFillable(bool _partiallyFillable) external;
-}
 
-interface IBaseTrustedFiller2 is IBaseTrustedFiller {
+    // Added in v2
     function emergencyCloseFiller() external;
 }
