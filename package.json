@@ -6,30 +6,24 @@
   "type": "module",
   "dependencies": {
     "@cowprotocol/app-data": "^3.3.1",
-    "@cowprotocol/cow-sdk": "^7.2.9",
-    "@cowprotocol/sdk-viem-adapter": "^0.3.0",
+    "@cowprotocol/cow-sdk": "^8.0.4",
+    "@cowprotocol/sdk-viem-adapter": "^0.3.14",
     "@openzeppelin/contracts": "5.1.0",
     "@openzeppelin/contracts-upgradeable": "5.1.0",
     "@prb/math": "4.1.0",
-    "ethers": "^5.7.2",
-    "forge-std": "github:foundry-rs/forge-std#v1.9.7",
-    "viem": "^2.44.2"
+    "ethers": "^5.8.0",
+    "forge-std": "github:foundry-rs/forge-std#v1.15.0",
+    "viem": "^2.47.6"
   },
   "devDependencies": {
-    "decimal.js": "^10.5.0",
-    "expect": "^29.7.0",
-    "prettier": "^3.4.2",
-    "prettier-plugin-solidity": "^1.4.2",
-    "solhint": "^5.0.4",
-    "solhint-plugin-prettier": "^0.1.0",
+    "decimal.js": "^10.6.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "scripts": {
     "format": "prettier --write \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt",
-    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\"",
-    "lint": "solhint --fix 'contracts/**/*.sol' 'script/**/*.sol'",
-    "lint:check": "solhint 'contracts/**/*.sol' 'script/**/*.sol'",
+    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt --check",
     "compile": "forge compile",
     "test": "forge test",
     "size": "forge compile --sizes",
@@ -38,5 +32,5 @@
     "deploy:jar": "forge script script/DeployImmutableTokenJar.s.sol --slow --verify",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@10.33.0"
 }

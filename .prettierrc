@@ -8,7 +8,6 @@
   "singleAttributePerLine": true,
   "endOfLine": "lf",
   "trailingComma": "all",
-  "plugins": ["prettier-plugin-solidity"],
   "overrides": [
     {
       "files": ".prettierrc",

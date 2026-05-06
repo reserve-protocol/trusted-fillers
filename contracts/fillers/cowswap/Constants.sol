@@ -7,7 +7,7 @@ interface Gpv2Settlement {
     function invalidateOrder(bytes calldata orderUid) external;
 }
 
-// Same addresses on Mainnet, Base
+// Same addresses on Mainnet, Base, BSC
 Gpv2Settlement constant GPV2_SETTLEMENT = Gpv2Settlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
 address constant GPV2_VAULT_RELAYER = address(0xC92E8bdf79f0507f65a392b0ab4667716BFE0110);
 

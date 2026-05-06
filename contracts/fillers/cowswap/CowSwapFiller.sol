@@ -7,13 +7,15 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
 
+import { Versioned } from "../../utils/Versioned.sol";
+
 import { D27, GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "./Constants.sol";
 import { GPv2OrderLib } from "./GPv2OrderLib.sol";
 
 /// Swap MUST occur in the same block as initialization
 /// Expected to be newly deployed in the pre-hook of a CowSwap order
 /// Ideally `closeFiller()` is called in the end as a post-hook, but this is not relied upon
-contract CowSwapFiller is Initializable, IBaseTrustedFiller {
+contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     using GPv2OrderLib for GPv2OrderLib.Data;
     using SafeERC20 for IERC20;
 
@@ -38,6 +40,11 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         _disableInitializers();
     }
 
+    modifier onlyFillCreator() {
+        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+        _;
+    }
+
     /// Initialize the swap, transferring in `_sellAmount` of the `_sell` token
     /// @dev Built for the pre-hook of a CowSwap order, must be called via using entity
     function initialize(
@@ -47,6 +54,8 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         uint256 _sellAmount,
         uint256 _minBuyAmount
     ) external initializer {
+        require(_sellToken != _buyToken, CowSwapFiller__OrderCheckFailed(200));
+
         fillCreator = _creator;
         sellToken = _sellToken;
         buyToken = _buyToken;
@@ -103,43 +112,43 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
 
     /// @return true if the contract is mid-swap and funds have not yet settled
     function swapActive() public view returns (bool) {
-        if (block.number != blockInitialized) {
-            return false;
+        if (_sameBlock()) {
+            uint256 sellTokenBalance = sellToken.balanceOf(address(this));
+
+            if (sellTokenBalance >= sellAmount) {
+                return false;
+            }
+
+            // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
+            uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
+
+            return minimumExpectedIn > buyToken.balanceOf(address(this));
         }
 
-        uint256 sellTokenBalance = sellToken.balanceOf(address(this));
-
-        if (sellTokenBalance >= sellAmount) {
-            return false;
-        }
-
-        // {buyTok} = {sellTok} * D27{buyTok/sellTok} / D27
-        uint256 minimumExpectedIn = Math.mulDiv(sellAmount - sellTokenBalance, price, D27, Math.Rounding.Ceil);
-
-        return minimumExpectedIn > buyToken.balanceOf(address(this));
+        return false;
     }
 
     /// Collect all balances back to the beneficiary
-    function closeFiller() external {
-        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
+    function closeFiller() external onlyFillCreator {
         require(!swapActive(), BaseTrustedFiller__SwapActive());
 
-        isClosed = true;
-
-        _rescueToken(sellToken);
-        _rescueToken(buyToken);
+        _closeFiller(false);
     }
 
-    function setPartiallyFillable(bool _partiallyFillable) external {
-        require(msg.sender == fillCreator, CowSwapFiller__Unauthorized());
-        require(block.number == blockInitialized, CowSwapFiller__Unauthorized());
+    function emergencyCloseFiller() external onlyFillCreator {
+        require(!_sameBlock(), CowSwapFiller__Unauthorized());
+
+        _closeFiller(true);
+    }
+
+    function setPartiallyFillable(bool _partiallyFillable) external onlyFillCreator {
+        require(_sameBlock(), CowSwapFiller__Unauthorized());
 
         partiallyFillable = _partiallyFillable;
     }
 
     /// Rescue tokens in case any are left in the contract
     function rescueToken(IERC20 token) public {
-        require(block.number != blockInitialized, CowSwapFiller__Unauthorized());
         require(isClosed, CowSwapFiller__Unauthorized()); // Close fill via `closeFiller()` first
 
         _rescueToken(token);
@@ -151,5 +160,21 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller {
         if (tokenBalance != 0) {
             token.safeTransfer(fillCreator, tokenBalance);
         }
+    }
+
+    function _closeFiller(bool tryCatch) internal {
+        isClosed = true;
+
+        if (tryCatch) {
+            try this.rescueToken(IERC20(sellToken)) { } catch { }
+            try this.rescueToken(IERC20(buyToken)) { } catch { }
+        } else {
+            _rescueToken(IERC20(sellToken));
+            _rescueToken(IERC20(buyToken));
+        }
+    }
+
+    function _sameBlock() internal view returns (bool) {
+        return block.number == blockInitialized;
     }
 }
