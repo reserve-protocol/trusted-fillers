@@ -9,7 +9,7 @@ import { IBaseTrustedFiller } from "../../interfaces/IBaseTrustedFiller.sol";
 
 import { Versioned } from "../../utils/Versioned.sol";
 
-import { D27, GPV2_SETTLEMENT, GPV2_VAULT_RELAYER } from "./Constants.sol";
+import { D27, GPv2Settlement } from "./Constants.sol";
 import { GPv2OrderLib } from "./GPv2OrderLib.sol";
 
 /// Swap MUST occur in the same block as initialization
@@ -20,7 +20,11 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     using SafeERC20 for IERC20;
 
     error CowSwapFiller__Unauthorized();
+    error CowSwapFiller__InvalidConfiguration();
     error CowSwapFiller__OrderCheckFailed(uint256 errorCode);
+
+    GPv2Settlement public immutable GPV2_SETTLEMENT;
+    address public immutable GPV2_VAULT_RELAYER;
 
     address public fillCreator;
 
@@ -36,7 +40,15 @@ contract CowSwapFiller is Initializable, IBaseTrustedFiller, Versioned {
     bool public isClosed;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address _gpv2Settlement, address _gpv2VaultRelayer) {
+        require(
+            address(_gpv2Settlement) != address(0) && _gpv2VaultRelayer != address(0),
+            CowSwapFiller__InvalidConfiguration()
+        );
+
+        GPV2_SETTLEMENT = GPv2Settlement(_gpv2Settlement);
+        GPV2_VAULT_RELAYER = _gpv2VaultRelayer;
+
         _disableInitializers();
     }
 

@@ -8,6 +8,7 @@ import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockRevertingERC20 } from "@mock/MockRevertingERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { cowSwapFillerConfig, deployCowSwapFiller } from "@script/DeployCowSwapFiller.s.sol";
 import { GenericTokenJar } from "@src/extras/GenericTokenJar.sol";
 import { CowSwapFiller } from "@src/fillers/cowswap/CowSwapFiller.sol";
 import { BaseTest } from "@test/base/BaseTest.sol";
@@ -144,7 +145,7 @@ contract GenericTokenJarTest is BaseTest {
 
     function test_GenericTokenJar_createTrustedFill_revertsOnUnapprovedFiller() public {
         GenericTokenJar.FillRequest memory request = _defaultRequest();
-        request.targetFiller = address(new CowSwapFiller());
+        request.targetFiller = address(deployCowSwapFiller(cowSwapFillerConfig()));
         _fundJar(request);
         bytes memory signature = _signRequest(request, ownerPk);
 

@@ -5,6 +5,7 @@ forge-std/=node_modules/forge-std/src/
 utils/=test/utils/
 
 @src/=contracts/
+@script/=script/
 @interfaces/=contracts/interfaces/
 @test/=test/
 @mock/=test/mock/

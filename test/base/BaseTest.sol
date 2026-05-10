@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import "forge-std/Test.sol";
 
 import { MockRoleRegistry } from "@mock/MockRoleRegistry.sol";
+import { cowSwapFillerConfig, deployCowSwapFiller } from "@script/DeployCowSwapFiller.s.sol";
 import { IRoleRegistry, TrustedFillerRegistry } from "@src/TrustedFillerRegistry.sol";
 
 import { CowSwapFiller } from "@src/fillers/cowswap/CowSwapFiller.sol";
@@ -18,7 +19,7 @@ abstract contract BaseTest is Test {
         roleRegistry = new MockRoleRegistry();
         trustedFillerRegistry = new TrustedFillerRegistry(address(roleRegistry));
 
-        cowSwapFiller = new CowSwapFiller();
+        cowSwapFiller = deployCowSwapFiller(cowSwapFillerConfig());
 
         trustedFillerRegistry.addTrustedFiller(cowSwapFiller);
 

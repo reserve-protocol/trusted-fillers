@@ -29,7 +29,8 @@
     "size": "forge compile --sizes",
     "coverage": "forge coverage --report lcov --no-match-coverage '(script|test)'",
     "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
-    "deploy:jar": "forge script script/DeployImmutableTokenJar.s.sol --slow --verify",
+    "deploy:jar": "forge script script/DeployGenericTokenJar.s.sol --slow --verify",
+    "deploy:filler": "forge script script/DeployCowSwapFiller.s.sol --slow --verify",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
   },
   "packageManager": "pnpm@10.33.0"
