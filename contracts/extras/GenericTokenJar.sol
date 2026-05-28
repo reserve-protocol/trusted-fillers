@@ -4,8 +4,8 @@ pragma solidity ^0.8.28;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
 import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
@@ -77,9 +77,12 @@ contract GenericTokenJar is Ownable, EIP712, ReentrancyGuard {
         _closeTrustedFill(request.sellToken, address(token));
 
         if (owner() != address(0)) {
-            address signer = ECDSA.recover(_hashTypedDataV4(_hashFillRequest(request)), ownerSignature);
+            bytes32 digest = _hashTypedDataV4(_hashFillRequest(request));
 
-            require(signer == owner(), GenericTokenJar__UnauthorizedSigner());
+            require(
+                SignatureChecker.isValidSignatureNow(owner(), digest, ownerSignature),
+                GenericTokenJar__UnauthorizedSigner()
+            );
         }
 
         filler = trustedFillerRegistry.createTrustedFiller(msg.sender, request.targetFiller, request.deploymentSalt);

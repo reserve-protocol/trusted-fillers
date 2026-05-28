@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
 import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
+import { MockERC1271Signer } from "@mock/MockERC1271Signer.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockRevertingERC20 } from "@mock/MockRevertingERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -89,6 +90,24 @@ contract GenericTokenJarTest is BaseTest {
         assertEq(filler.sellAmount(), SELL_AMOUNT);
         assertEq(sellToken.balanceOf(address(filler)), SELL_AMOUNT);
         assertEq(sellToken.balanceOf(address(jar)), 0);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_acceptsERC1271OwnerSignature() public {
+        MockERC1271Signer signer = new MockERC1271Signer();
+        GenericTokenJar contractOwnedJar =
+            new GenericTokenJar(destination, buyToken, address(signer), trustedFillerRegistry);
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        bytes memory signature = abi.encodePacked("erc1271 signature");
+
+        signer.setValidSignature(contractOwnedJar.getFillRequestHash(request), signature, true);
+        MockERC20(request.sellToken).mint(address(contractOwnedJar), request.sellAmount);
+
+        IBaseTrustedFiller filler = contractOwnedJar.createTrustedFill(request, signature);
+
+        assertEq(contractOwnedJar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(filler));
+        assertEq(CowSwapFiller(address(filler)).fillCreator(), address(contractOwnedJar));
+        assertEq(sellToken.balanceOf(address(filler)), SELL_AMOUNT);
+        assertEq(sellToken.balanceOf(address(contractOwnedJar)), 0);
     }
 
     function test_GenericTokenJar_createTrustedFill_revertsOnWrongSigner() public {
