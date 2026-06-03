@@ -16,13 +16,14 @@ contract DeployGenericTokenJar is Script {
 
     function run() external returns (GenericTokenJar jar) {
         require(block.chainid == 8453);
-        ITrustedFillerRegistry trustedFillerRegistry = ITrustedFillerRegistry(vm.envAddress("TRUSTED_FILLER_REGISTRY"));
+        ITrustedFillerRegistry trustedFillerRegistry =
+            ITrustedFillerRegistry(0x72DB5f49D0599C314E2f2FEDf6Fe33E1bA6C7A18);
 
         vm.startBroadcast(privateKey);
         jar = new GenericTokenJar(
             walletAddress,
             IERC20(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913), // USDC Base
-            walletAddress,
+            address(0x170D196640702B3CE182a3406428B68F3e7b7694), // signer (safe)
             trustedFillerRegistry
         );
         // jar.renounceOwnership();
