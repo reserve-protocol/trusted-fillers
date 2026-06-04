@@ -37,10 +37,10 @@ contract DeployCowSwapFiller is Script {
     function run() external {
         vm.startBroadcast(privateKey);
         CowSwapFiller cowSwapFiller = deployCowSwapFiller(cowSwapFillerConfig());
-        CowSwapFiller zapSwapFiller = deployCowSwapFiller(zapSwapFillerConfig());
+        // CowSwapFiller zapSwapFiller = deployCowSwapFiller(zapSwapFillerConfig());
         vm.stopBroadcast();
 
         console2.log("CowSwapFiller (CowSwap):", address(cowSwapFiller));
-        console2.log("CowSwapFiller (ZapSwap):", address(zapSwapFiller));
+        // console2.log("CowSwapFiller (ZapSwap):", address(zapSwapFiller));
     }
 }

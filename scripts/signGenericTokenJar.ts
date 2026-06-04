@@ -1,89 +1,61 @@
 import {
-  GENERIC_TOKEN_JAR_FILL_REQUEST_TYPES,
   processJarBalances,
   type SignGenericTokenJarFillRequestParams,
   type SupportedChainId,
 } from "@reserve-protocol/trusted-fillers-sdk";
-import SignClient from "@walletconnect/sign-client";
+import { SignClient } from "@walletconnect/sign-client";
 import {
   createPublicClient,
   getAddress,
+  getTypesForEIP712Domain,
   http,
   isAddress,
   isAddressEqual,
   isHex,
   serializeTypedData,
-  zeroAddress,
 } from "viem";
 import type { Address, Chain, Hex, PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base, bsc, mainnet } from "viem/chains";
 
-const config: {
+type SignerConfig =
+  | {
+      type: "local";
+      privateKey: Hex;
+    }
+  | {
+      type: "walletconnect";
+      projectId: string;
+      account: Address;
+    };
+
+type ScriptConfig = {
   chainId: SupportedChainId;
   jarAddress: Address;
-  rpcUrl?: string;
-  signer:
-    | {
-        type: "local";
-        privateKey: Hex;
-      }
-    | {
-        type: "walletconnect";
-        projectId: string;
-        account: Address;
-      };
+  rpcUrl: string;
+  signer: SignerConfig;
   tokenList: Address[];
-  validateSignatures: boolean;
   validityDuration: number;
-} = {
+};
+
+const config: ScriptConfig = {
   chainId: base.id,
   jarAddress: "0x1f55B89D575D531446a2569158F880768686B3B8",
   rpcUrl: "https://base.gateway.tenderly.co",
   signer: {
     type: "walletconnect",
-    projectId: "demo",
-    account: "0x170D196640702B3CE182a3406428B68F3e7b7694"
+    projectId: "2447c0da755a548d21d984d7e4b6c3fa",
+    account: "0x170D196640702B3CE182a3406428B68F3e7b7694",
   },
-  tokenList: [
-    "0x23418De10d422AD71C9D5713a2B8991a9c586443",
-  ],
-  validateSignatures: true,
+  tokenList: ["0x23418De10d422AD71C9D5713a2B8991a9c586443"],
   validityDuration: 120,
 };
 
-type SignerConfig = (typeof config)["signer"];
-
-const walletConnectDomainTypes = [
-  { name: "name", type: "string" },
-  { name: "version", type: "string" },
-  { name: "chainId", type: "uint256" },
-  { name: "verifyingContract", type: "address" },
-] as const;
-
-const walletConnectTypes = {
-  EIP712Domain: walletConnectDomainTypes,
-  ...GENERIC_TOKEN_JAR_FILL_REQUEST_TYPES,
-} as const;
-
-const genericTokenJarAbi = [
-  {
-    type: "function",
-    name: "owner",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "address" }],
-  },
-] as const;
-
-type SignatureValidation =
-  | {
-      mode: "permissionless" | "signature";
-      owner: Address;
-      ownerHasCode: boolean;
-      valid: boolean;
-    }
-  | { error: string };
+const chainsById = {
+  [mainnet.id]: mainnet,
+  [base.id]: base,
+  [bsc.id]: bsc,
+} satisfies Record<SupportedChainId, Chain>;
 
 type SignedFillRequest = {
   account: Address;
@@ -92,7 +64,6 @@ type SignedFillRequest = {
   request: SignGenericTokenJarFillRequestParams["request"];
   requestHash: Hex;
   signature: Hex;
-  signatureValidation?: SignatureValidation;
 };
 
 type FillRequestSigner = {
@@ -114,25 +85,6 @@ function assertPrivateKey(value: Hex): Hex {
   }
 
   return value;
-}
-
-function buildChain(chainId: SupportedChainId, rpcUrl?: string): Chain {
-  const chain = {
-    [mainnet.id]: mainnet,
-    [base.id]: base,
-    [bsc.id]: bsc,
-  }[chainId];
-
-  if (!rpcUrl) {
-    return chain;
-  }
-
-  return {
-    ...chain,
-    rpcUrls: {
-      default: { http: [rpcUrl] },
-    },
-  };
 }
 
 function getSessionAccounts(
@@ -184,7 +136,6 @@ function createWalletConnectSigner(
 ): FillRequestSigner {
   let signClient: Awaited<ReturnType<typeof SignClient.init>> | undefined;
   let topic: string | undefined;
-  let account: Address | undefined;
 
   return {
     close: async () => {
@@ -202,17 +153,13 @@ function createWalletConnectSigner(
       }
     },
     sign: async (params) => {
-      if (!signerConfig.projectId) {
-        throw new Error("config.signer.projectId is required for WalletConnect signing");
-      }
-
-      if (!signClient || !topic || !account) {
+      if (!signClient || !topic) {
         signClient = await SignClient.init({
           projectId: signerConfig.projectId,
           metadata: {
             name: "Reserve Trusted Fillers",
             description: "Signs GenericTokenJar fill requests",
-            url: "https://reserve.org",
+            url: "https://app.reserve.org",
             icons: [],
           },
         });
@@ -237,17 +184,9 @@ function createWalletConnectSigner(
 
         const session = await approval();
         const accounts = getSessionAccounts(session, chainId);
-        account = signerConfig.account ?? accounts[0];
         topic = session.topic;
 
-        if (!account) {
-          throw new Error(`WalletConnect session did not approve an eip155:${chainId} account`);
-        }
-
-        if (
-          signerConfig.account &&
-          !accounts.some((approvedAccount) => isAddressEqual(approvedAccount, signerConfig.account as Address))
-        ) {
+        if (!accounts.some((approvedAccount) => isAddressEqual(approvedAccount, signerConfig.account))) {
           throw new Error(`Expected account ${signerConfig.account} was not approved by the WalletConnect session`);
         }
       }
@@ -257,7 +196,10 @@ function createWalletConnectSigner(
           ...params.domain,
           chainId: BigInt(params.domain.chainId),
         },
-        types: walletConnectTypes,
+        types: {
+          EIP712Domain: getTypesForEIP712Domain({ domain: params.domain }),
+          ...params.types,
+        },
         primaryType: "FillRequest",
         message: { ...params.request },
       } as const;
@@ -266,7 +208,7 @@ function createWalletConnectSigner(
         chainId: `eip155:${chainId}`,
         request: {
           method: "eth_signTypedData_v4",
-          params: [account, serializeTypedData(typedData)],
+          params: [signerConfig.account, serializeTypedData(typedData as Parameters<typeof serializeTypedData>[0])],
         },
       })) as Hex;
 
@@ -274,7 +216,7 @@ function createWalletConnectSigner(
         throw new Error("WalletConnect returned a non-hex signature");
       }
 
-      return { account, signature };
+      return { account: signerConfig.account, signature };
     },
   };
 }
@@ -285,57 +227,11 @@ function createSigner(signerConfig: SignerConfig, chainId: SupportedChainId): Fi
     : createLocalSigner(signerConfig);
 }
 
-async function validateSignature(
-  client: PublicClient,
-  params: SignGenericTokenJarFillRequestParams,
-  signature: Hex,
-): Promise<SignatureValidation> {
-  try {
-    const owner = await client.readContract({
-      address: params.jarAddress,
-      abi: genericTokenJarAbi,
-      functionName: "owner",
-      authorizationList: undefined,
-    });
-
-    if (owner === zeroAddress) {
-      return {
-        mode: "permissionless",
-        owner,
-        ownerHasCode: false,
-        valid: true,
-      };
-    }
-
-    const ownerCode = await client.getCode({ address: owner });
-    const valid = await client.verifyTypedData({
-      address: owner,
-      domain: params.domain,
-      types: params.types,
-      primaryType: "FillRequest",
-      message: { ...params.request },
-      signature,
-    });
-
-    return {
-      mode: "signature",
-      owner,
-      ownerHasCode: Boolean(ownerCode),
-      valid,
-    };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
 async function main(): Promise<void> {
   const jarAddress = assertAddress(config.jarAddress, "config.jarAddress");
   const tokenList = config.tokenList.map((token) => assertAddress(token, "config.tokenList"));
-  const chain = buildChain(config.chainId, config.rpcUrl);
   const client = createPublicClient({
-    chain,
+    chain: chainsById[config.chainId],
     transport: http(config.rpcUrl),
   }) as unknown as PublicClient;
   const signer = createSigner(config.signer, config.chainId);
@@ -350,9 +246,6 @@ async function main(): Promise<void> {
       validityDuration: config.validityDuration,
       signFillRequest: async (params) => {
         const { account, signature } = await signer.sign(params);
-        const signatureValidation = config.validateSignatures
-          ? await validateSignature(client, params, signature)
-          : undefined;
 
         signedFillRequests.push({
           account,
@@ -361,16 +254,7 @@ async function main(): Promise<void> {
           request: params.request,
           requestHash: params.requestHash,
           signature,
-          signatureValidation,
         });
-
-        if (signatureValidation && "valid" in signatureValidation && !signatureValidation.valid) {
-          throw new Error(`Invalid signature for jar owner ${signatureValidation.owner}`);
-        }
-
-        if (signatureValidation && "error" in signatureValidation) {
-          throw new Error(`Signature validation failed: ${signatureValidation.error}`);
-        }
 
         return signature;
       },

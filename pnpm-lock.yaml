@@ -16,7 +16,7 @@ importers:
         version: 8.0.4(ajv@8.18.0)(cross-fetch@3.2.0)(ipfs-only-hash@4.0.0)(multiformats@9.9.0)
       '@cowprotocol/sdk-viem-adapter':
         specifier: ^0.3.14
-        version: 0.3.14(viem@2.47.6(typescript@5.9.3))
+        version: 0.3.22(viem@2.47.6(typescript@5.9.3))
       '@openzeppelin/contracts':
         specifier: 5.1.0
         version: 5.1.0
@@ -29,6 +29,9 @@ importers:
       '@reserve-protocol/trusted-fillers-sdk':
         specifier: 0.5.0
         version: 0.5.0(ajv@8.18.0)(cross-fetch@3.2.0)(multiformats@9.9.0)(viem@2.47.6(typescript@5.9.3))
+      '@reserve-protocol/universal-deployer':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@walletconnect/sign-client':
         specifier: 2.23.9
         version: 2.23.9(typescript@5.9.3)
@@ -165,11 +168,6 @@ packages:
 
   '@cowprotocol/sdk-trading@2.1.1':
     resolution: {integrity: sha512-6tapsep4XvWjNNOD1P11i6vjRnSVxVyben3/nuvkkVu657PP6hLdR/EYAmRkPVFSmrrsvEgO9gMwleo2wCoCiQ==}
-
-  '@cowprotocol/sdk-viem-adapter@0.3.14':
-    resolution: {integrity: sha512-6PVjU8W7DLKZ+A/nqmOh4NlbeMn5+XGaTrL7Npxt0y9wsWItvxctizrid+dWxn3jDoDG5yQaD2p95AyOOqxhfA==}
-    peerDependencies:
-      viem: ^2.28.4
 
   '@cowprotocol/sdk-viem-adapter@0.3.22':
     resolution: {integrity: sha512-7hdi0qFRUoar5KeyOwtmGF/1Fjr+aCGdiE6ZYQ3bxpJGmuiyWz/G5fNAoZ5d9uIjZZqMJdt2OBQEKRN2I6P57Q==}
@@ -526,6 +524,9 @@ packages:
     peerDependencies:
       viem: ^2.0.0
 
+  '@reserve-protocol/universal-deployer@1.2.0':
+    resolution: {integrity: sha512-H4Y4FBVfLKQvV4W+/ftU5m6ZGYElZhvoLZQ9ys6wWHyy3ye+xS+e8ClvnHyEuB0aVxIzQOGjfHxHV8et81Nk4Q==}
+
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
 
@@ -772,7 +773,7 @@ packages:
     engines: {node: '>=8'}
 
   forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/0844d7e1fc5e60d77b68e469bff60265f236c398:
-    resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/0844d7e1fc5e60d77b68e469bff60265f236c398}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/0844d7e1fc5e60d77b68e469bff60265f236c398}
     version: 1.15.0
 
   fsevents@2.3.3:
@@ -1681,11 +1682,6 @@ snapshots:
       - multiformats
       - supports-color
 
-  '@cowprotocol/sdk-viem-adapter@0.3.14(viem@2.47.6(typescript@5.9.3))':
-    dependencies:
-      '@cowprotocol/sdk-common': 0.8.2
-      viem: 2.47.6(typescript@5.9.3)
-
   '@cowprotocol/sdk-viem-adapter@0.3.22(viem@2.47.6(typescript@5.9.3))':
     dependencies:
       '@cowprotocol/sdk-common': 0.11.1
@@ -2140,11 +2136,13 @@ snapshots:
       - multiformats
       - supports-color
 
+  '@reserve-protocol/universal-deployer@1.2.0': {}
+
   '@scure/base@1.2.6': {}
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 

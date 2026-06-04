@@ -12,6 +12,7 @@
     "@openzeppelin/contracts-upgradeable": "5.1.0",
     "@prb/math": "4.1.0",
     "@reserve-protocol/trusted-fillers-sdk": "0.5.0",
+    "@reserve-protocol/universal-deployer": "^1.2.0",
     "@walletconnect/sign-client": "2.23.9",
     "ethers": "^5.8.0",
     "forge-std": "github:foundry-rs/forge-std#v1.15.0",
@@ -33,9 +34,9 @@
     "size": "forge compile --sizes",
     "coverage": "forge coverage --report lcov --no-match-coverage '(script|test)'",
     "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
-    "deploy:jar": "forge script script/DeployGenericTokenJar.s.sol --slow ",
-    "deploy:filler": "forge script script/DeployCowSwapFiller.s.sol --slow --verify",
+    "deploy:jar": "forge script script/DeployGenericTokenJar.s.sol --slow",
+    "deploy:filler": "forge script script/DeployCowSwapFiller.s.sol --slow",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@11.5.1"
 }
