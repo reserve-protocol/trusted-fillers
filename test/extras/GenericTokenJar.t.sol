@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import { IBaseTrustedFiller } from "@interfaces/IBaseTrustedFiller.sol";
 import { ITrustedFillerRegistry } from "@interfaces/ITrustedFillerRegistry.sol";
+import { MockERC1271MultisigSigner } from "@mock/MockERC1271MultisigSigner.sol";
 import { MockERC1271Signer } from "@mock/MockERC1271Signer.sol";
 import { MockERC20 } from "@mock/MockERC20.sol";
 import { MockRevertingERC20 } from "@mock/MockRevertingERC20.sol";
@@ -57,7 +58,19 @@ contract GenericTokenJarTest is BaseTest {
         view
         returns (bytes memory signature)
     {
-        bytes32 digest = jar.getFillRequestHash(request);
+        signature = _signRequestForJar(jar, request, signerPk);
+    }
+
+    function _signRequestForJar(GenericTokenJar targetJar, GenericTokenJar.FillRequest memory request, uint256 signerPk)
+        internal
+        view
+        returns (bytes memory signature)
+    {
+        bytes32 digest = targetJar.getFillRequestHash(request);
+        signature = _signDigest(digest, signerPk);
+    }
+
+    function _signDigest(bytes32 digest, uint256 signerPk) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
         signature = abi.encodePacked(r, s, v);
     }
@@ -100,6 +113,27 @@ contract GenericTokenJarTest is BaseTest {
         bytes memory signature = abi.encodePacked("erc1271 signature");
 
         signer.setValidSignature(contractOwnedJar.getFillRequestHash(request), signature, true);
+        MockERC20(request.sellToken).mint(address(contractOwnedJar), request.sellAmount);
+
+        IBaseTrustedFiller filler = contractOwnedJar.createTrustedFill(request, signature);
+
+        assertEq(contractOwnedJar.activeFillsByTokenPair(address(sellToken), address(buyToken)), address(filler));
+        assertEq(CowSwapFiller(address(filler)).fillCreator(), address(contractOwnedJar));
+        assertEq(sellToken.balanceOf(address(filler)), SELL_AMOUNT);
+        assertEq(sellToken.balanceOf(address(contractOwnedJar)), 0);
+    }
+
+    function test_GenericTokenJar_createTrustedFill_acceptsERC1271MultisigOwnerSignature() public {
+        uint256 firstSignerPk = 0xA11CE;
+        uint256 secondSignerPk = 0xB0B;
+        MockERC1271MultisigSigner signer =
+            new MockERC1271MultisigSigner(vm.addr(firstSignerPk), vm.addr(secondSignerPk));
+        GenericTokenJar contractOwnedJar =
+            new GenericTokenJar(destination, buyToken, address(signer), trustedFillerRegistry);
+        GenericTokenJar.FillRequest memory request = _defaultRequest();
+        bytes32 digest = contractOwnedJar.getFillRequestHash(request);
+        bytes memory signature = abi.encode(_signDigest(digest, firstSignerPk), _signDigest(digest, secondSignerPk));
+
         MockERC20(request.sellToken).mint(address(contractOwnedJar), request.sellAmount);
 
         IBaseTrustedFiller filler = contractOwnedJar.createTrustedFill(request, signature);
