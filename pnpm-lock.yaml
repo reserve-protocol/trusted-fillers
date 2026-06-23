@@ -38,9 +38,6 @@ importers:
       ethers:
         specifier: ^5.8.0
         version: 5.8.0
-      forge-std:
-        specifier: github:foundry-rs/forge-std#v1.15.0
-        version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/0844d7e1fc5e60d77b68e469bff60265f236c398
       multiformats:
         specifier: ^9.9.0
         version: 9.9.0
@@ -54,6 +51,9 @@ importers:
       decimal.js:
         specifier: ^10.6.0
         version: 10.6.0
+      forge-std:
+        specifier: github:foundry-rs/forge-std#v1.15.0
+        version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/0844d7e1fc5e60d77b68e469bff60265f236c398
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
